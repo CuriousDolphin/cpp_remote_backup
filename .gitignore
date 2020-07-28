@@ -4,4 +4,3 @@ remote_backup_server/.idea
 remote_backup_server/cmake-build-debug/*
 remote_backup_client/.idea/*
 remote_backup_client/.idea/workspace.xml
-remote_backup_client/.idea/workspace.xml
