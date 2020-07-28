@@ -1,6 +1,6 @@
 #include <iostream>
 #include "file_watcher.h"
-int main() {
+int main(){
     // Create a FileWatcher instance that will check the current folder for changes every 5 seconds
     FileWatcher fw{"./", std::chrono::milliseconds(5000)};
 
