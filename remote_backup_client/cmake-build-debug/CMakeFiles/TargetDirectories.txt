@@ -1,3 +1,0 @@
-C:/Users/isnob/CLionProjects/cpp_lab/remote_backup/cmake-build-debug/CMakeFiles/remote_backup.dir
-C:/Users/isnob/CLionProjects/cpp_lab/remote_backup/cmake-build-debug/CMakeFiles/edit_cache.dir
-C:/Users/isnob/CLionProjects/cpp_lab/remote_backup/cmake-build-debug/CMakeFiles/rebuild_cache.dir
