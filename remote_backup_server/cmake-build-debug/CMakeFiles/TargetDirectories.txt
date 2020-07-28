@@ -1,0 +1,3 @@
+C:/Users/isnob/CLionProjects/cpp_lab/remote_backup_server/cmake-build-debug/CMakeFiles/remote_backup_server.dir
+C:/Users/isnob/CLionProjects/cpp_lab/remote_backup_server/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/isnob/CLionProjects/cpp_lab/remote_backup_server/cmake-build-debug/CMakeFiles/rebuild_cache.dir
