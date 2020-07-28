@@ -8,9 +8,9 @@ int main() {
     // run a user provided lambda function
     fw.start([] (std::string path_to_watch, FileStatus status) -> void {
         // Process only regular files, all other file types are ignored
-        if(!std::filesystem::is_regular_file(std::filesystem::path(path_to_watch)) && status != FileStatus::erased) {
+        /*if(!std::filesystem::is_regular_file(std::filesystem::path(path_to_watch)) && status != FileStatus::erased) {
             return;
-        }
+        }*/
 
         switch(status) {
             case FileStatus::created:
