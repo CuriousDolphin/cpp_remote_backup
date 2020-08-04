@@ -7,6 +7,7 @@
 #include <string>
 #include <functional>
 #include "node.h"
+#include "hasher.h"
 
 // Define available file changes
 enum class FileStatus
@@ -20,6 +21,13 @@ class FileWatcher
 {
 public:
     std::string path_to_watch;
+
+    /* std::uint32_t checksum;
+    std::string checksumString;
+
+    md5 hash;
+    md5::digest_type digest; */
+
     // Time interval at which we check the base folder for changes
     std::chrono::duration<int, std::milli> delay;
 
@@ -29,7 +37,13 @@ public:
         for (auto &file : std::filesystem::recursive_directory_iterator(path_to_watch))
         {
             paths_[file.path().string()] = std::filesystem::last_write_time(file);
-            std::cout << file.path().string() << std::endl;
+            /*checksum = crc32(file.path().string());
+            checksumString = std::to_string(checksum);
+            std::cout <<  file.path().string() << " " << checksum << " " << sizeof(checksum) << std::endl;*/
+            
+            
+
+            //std::cout << "md5(" << s << ") = " << toString(digest) << '\n';
         }
     }
 

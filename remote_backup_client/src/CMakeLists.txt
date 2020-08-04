@@ -3,7 +3,7 @@ project(remote_backup_client)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(remote_backup_client main.cpp file_watcher.h)
+add_executable(remote_backup_client main.cpp file_watcher.h node.h hasher.h)
 
 find_package(Boost 1.67.0 COMPONENTS system filesystem REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})

@@ -16,3 +16,4 @@ remote_backup_client/src/Makefile
 remote_backup_client/src/remote_backup_client
 remote_backup_client/src/CMakeFiles/**
 remote_backup_client/src/cmake_install.cmake
+remote_backup_client/.vscode/settings.json
