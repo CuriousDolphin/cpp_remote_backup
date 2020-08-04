@@ -37,13 +37,9 @@ public:
         for (auto &file : std::filesystem::recursive_directory_iterator(path_to_watch))
         {
             paths_[file.path().string()] = std::filesystem::last_write_time(file);
-            /*checksum = crc32(file.path().string());
-            checksumString = std::to_string(checksum);
-            std::cout <<  file.path().string() << " " << checksum << " " << sizeof(checksum) << std::endl;*/
-            
-            
-
-            //std::cout << "md5(" << s << ") = " << toString(digest) << '\n';
+            uintmax_t size = std::filesystem::file_size(file);
+            std::string hash = getMD5(file.path().string());
+            Node tmpfile(file.path().string(),false,hash,size);
         }
     }
 

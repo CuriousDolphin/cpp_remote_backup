@@ -10,8 +10,27 @@ class Node
 {
     std::string path;
     bool isDir;
-    std::vector<uint32_t> hash;
+    std::vector<std::string> hash_histories;
+    uintmax_t size;
 
 public:
-    Node(std::string path, bool isDir, uint32_t hash) : path(path), isDir(isDir), hash(hash){};
+    Node(std::string path, bool isDir, std::string hash, uintmax_t size) : path(path), isDir(isDir), size(size)
+    {
+        hash_histories.push_back(hash);
+
+    }
+
+    std::string toString()
+    {
+        std::ostringstream buffer;
+        buffer << path << " HASH (head): " << getLastHash()
+               << " size: (bytes) " << size << std::endl;
+        return buffer.str();
+    }
+
+    std::string getLastHash()
+    {
+
+        return hash_histories.back();
+    }
 };
