@@ -15,9 +15,9 @@ RUN apt-get update \
     openssh-server\
     libboost-all-dev\
   && apt-get clean
-WORKDIR /remote_backup_client
-COPY /src ./
-RUN cmake . && make
+#WORKDIR /remote_backup_client
+#COPY /src ./
+#RUN cmake . && make
 
 #COPY /src/remote_backup_client ./
-CMD ["./remote_backup_client"]
+#CMD ["./remote_backup_client"]

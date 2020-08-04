@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <string>
 #include <functional>
+#include "node.h"
 
 // Define available file changes
 enum class FileStatus
@@ -60,7 +61,7 @@ public:
             {
                 std::filesystem::file_time_type current_file_last_write_time = std::filesystem::last_write_time(file);
 
-                std::cout << "  - " << file.path().string() << "  " << std::endl;
+                //std::cout << "  - " << file.path().string() << "  " << std::endl;
                 // File creation
                 if (!contains(file.path().string()))
                 {
