@@ -22,12 +22,6 @@ class FileWatcher
 public:
     std::string path_to_watch;
 
-    /* std::uint32_t checksum;
-    std::string checksumString;
-
-    md5 hash;
-    md5::digest_type digest; */
-
     // Time interval at which we check the base folder for changes
     std::chrono::duration<int, std::milli> delay;
 
@@ -36,10 +30,13 @@ public:
     {
         for (auto &file : std::filesystem::recursive_directory_iterator(path_to_watch))
         {
-            paths_[file.path().string()] = std::filesystem::last_write_time(file);
+            //TODO CHECK SE E' UNA DIR
             uintmax_t size = std::filesystem::file_size(file);
             std::string hash = getMD5(file.path().string());
-            Node tmpfile(file.path().string(),false,hash,size);
+            auto time = std::filesystem::last_write_time(file);
+            Node tmp(file.path().string(), false, hash, size, to_timestamp(time));
+            std::cout << tmp.toString() << std::endl;
+            paths_.insert({file.path().string(), tmp});
         }
     }
 
@@ -57,7 +54,7 @@ public:
             {
                 if (!std::filesystem::exists(it->first))
                 {
-                    action(it->first, FileStatus::erased);
+                    action(it->first, FileStatus::erased); // it->first chiave
                     it = paths_.erase(it);
                 }
                 else
@@ -69,22 +66,38 @@ public:
             // Check if a file was created or modified
             for (auto &file : std::filesystem::recursive_directory_iterator(path_to_watch))
             {
-                std::filesystem::file_time_type current_file_last_write_time = std::filesystem::last_write_time(file);
-
-                //std::cout << "  - " << file.path().string() << "  " << std::endl;
-                // File creation
+                std::filesystem::file_time_type time = std::filesystem::last_write_time(file);
+                long int current_file_last_write_time = to_timestamp(time);
+                // CREATION
                 if (!contains(file.path().string()))
                 {
-                    paths_[file.path().string()] = current_file_last_write_time;
+
+                    uintmax_t size = std::filesystem::file_size(file);
+                    std::string hash = getMD5(file.path().string());
+                    auto time = std::filesystem::last_write_time(file);
+                    Node tmp(file.path().string(), false, hash, size, current_file_last_write_time);
+                    std::cout << tmp.toString() << std::endl;
+                    paths_.insert({file.path().string(), tmp});
+
+                    // paths_[file.path().string()] = current_file_last_write_time;
                     action(file.path().string(), FileStatus::created);
-                    // File modification
                 }
+
+                // File modification
                 else
                 {
-                    if (paths_[file.path().string()] != current_file_last_write_time)
+                    if (paths_[file.path().string()].getLastWriteTime() != current_file_last_write_time)
                     {
-                        paths_[file.path().string()] = current_file_last_write_time;
-                        action(file.path().string(), FileStatus::modified);
+                        std::string old_hash = paths_[file.path().string()].getLastHash();
+                        std::string new_hash = getMD5(file.path().string());
+
+                        if (old_hash != new_hash)
+                        { // se cambia l'hash la modifica e' veritiera
+                            paths_[file.path().string()].setLastWriteTime(current_file_last_write_time);
+                            paths_[file.path().string()].setLastHash(new_hash);
+                            std::cout << "UPDATE FROM: " << old_hash << " -> " << new_hash << std::endl;
+                            action(file.path().string(), FileStatus::modified);
+                        }
                     }
                 }
             }
@@ -92,7 +105,7 @@ public:
     }
 
 private:
-    std::unordered_map<std::string, std::filesystem::file_time_type> paths_;
+    std::unordered_map<std::string, Node> paths_;
     bool running_ = true;
 
     // Check if "paths_" contains a given key
