@@ -28,20 +28,18 @@ public:
     // Keep a record of files from the base directory and their last modification time
     FileWatcher(std::string path_to_watch, std::chrono::duration<int, std::milli> delay) : path_to_watch{path_to_watch}, delay{delay}
     {
+        std::cout << "ACTUAL TREE " << std::endl;
         for (auto &file : std::filesystem::recursive_directory_iterator(path_to_watch))
         {
-            //TODO CHECK SE E' UNA DIR
-            uintmax_t size = std::filesystem::file_size(file);
-            std::string hash = getMD5(file.path().string());
-            auto time = std::filesystem::last_write_time(file);
-            Node tmp(file.path().string(), false, hash, size, to_timestamp(time));
+            Node tmp = createNode(file);
             std::cout << tmp.toString() << std::endl;
             paths_.insert({file.path().string(), tmp});
         }
+        std::cout << "----------------------------" << std::endl;
     }
 
     // Monitor "path_to_watch" for changes and in case of a change execute the user supplied "action" function
-    void start(const std::function<void(std::string, FileStatus)> &action)
+    void start(const std::function<void(Node, FileStatus)> &action)
     {
         std::cout << "START MONITORING" << std::endl;
         while (running_)
@@ -54,7 +52,7 @@ public:
             {
                 if (!std::filesystem::exists(it->first))
                 {
-                    action(it->first, FileStatus::erased); // it->first chiave
+                    action(it->second, FileStatus::erased); // it->first chiave
                     it = paths_.erase(it);
                 }
                 else
@@ -72,15 +70,11 @@ public:
                 if (!contains(file.path().string()))
                 {
 
-                    uintmax_t size = std::filesystem::file_size(file);
-                    std::string hash = getMD5(file.path().string());
-                    auto time = std::filesystem::last_write_time(file);
-                    Node tmp(file.path().string(), false, hash, size, current_file_last_write_time);
-                    std::cout << tmp.toString() << std::endl;
+                    Node tmp = createNode(file);
                     paths_.insert({file.path().string(), tmp});
 
                     // paths_[file.path().string()] = current_file_last_write_time;
-                    action(file.path().string(), FileStatus::created);
+                    action(tmp, FileStatus::created);
                 }
 
                 // File modification
@@ -93,10 +87,11 @@ public:
 
                         if (old_hash != new_hash)
                         { // se cambia l'hash la modifica e' veritiera
+                            uintmax_t size = std::filesystem::file_size(file);
+                            paths_[file.path().string()].setSize(size);
                             paths_[file.path().string()].setLastWriteTime(current_file_last_write_time);
                             paths_[file.path().string()].setLastHash(new_hash);
-                            std::cout << "UPDATE FROM: " << old_hash << " -> " << new_hash << std::endl;
-                            action(file.path().string(), FileStatus::modified);
+                            action(paths_[file.path().string()], FileStatus::modified);
                         }
                     }
                 }
@@ -107,7 +102,23 @@ public:
 private:
     std::unordered_map<std::string, Node> paths_;
     bool running_ = true;
-
+    Node createNode(const std::filesystem::directory_entry &file)
+    {
+        if (!std::filesystem::is_directory(file))
+        {
+            uintmax_t size = std::filesystem::file_size(file);
+            std::string hash = getMD5(file.path().string());
+            auto time = std::filesystem::last_write_time(file);
+            Node tmp(file.path().string(), false, hash, size, to_timestamp(time));
+            return tmp;
+        }
+        else
+        {
+            auto time = std::filesystem::last_write_time(file);
+            Node tmp(file.path().string(), true, "", 0, to_timestamp(time));
+            return tmp;
+        }
+    }
     // Check if "paths_" contains a given key
     // If your compiler supports C++20 use paths_.contains(key) instead of this function
     bool contains(const std::string &key)
