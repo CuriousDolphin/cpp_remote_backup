@@ -51,6 +51,10 @@ public:
             buffer << "-> " << hash_histories[i] << " ";
         return buffer.str();
     }
+    std::string getFirstHash()
+    {
+        return hash_histories.front();
+    }
 
     std::string getLastHash()
     {
