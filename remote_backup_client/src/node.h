@@ -30,12 +30,25 @@ public:
         hash_histories.push_back(hash);
     }
 
+    void setSize(uintmax_t s)
+    {
+        size = s;
+    }
+
     std::string toString()
 
     {
 
         std::ostringstream buffer;
-        buffer << path << "\t\n(head): " << getLastHash() << "\t\n(size): " << size << "\t\n(time): " << last_write_time << std::endl;
+        buffer << path << "\t\n(history): " << getHistory() << "\t\n(size): " << size << "\t\n(time): " << last_write_time;
+        return buffer.str();
+    }
+
+    std::string getHistory()
+    {
+        std::ostringstream buffer;
+        for (int i = 0; i < hash_histories.size(); i++)
+            buffer << "-> " << hash_histories[i] << " ";
         return buffer.str();
     }
 
