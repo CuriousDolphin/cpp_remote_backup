@@ -5,3 +5,15 @@ remote_backup_server/cmake-build-debug/*
 remote_backup_client/.idea/*
 remote_backup_client/.idea/workspace.xml
 .idea
+remote_backup_client/CMakeFiles/cmake.check_cache
+remote_backup_client/CMakeFiles/CMakeDirectoryInformation.cmake
+remote_backup_client/CMakeFiles/Makefile.cmake
+remote_backup_client/CMakeFiles**
+remote_backup_client/src/CMakeCache.txt
+remote_backup_client/src/CMakeFiles/cmake.check_cache
+remote_backup_client/my_sync_folder/**
+remote_backup_client/src/Makefile
+remote_backup_client/src/remote_backup_client
+remote_backup_client/src/CMakeFiles/**
+remote_backup_client/src/cmake_install.cmake
+remote_backup_client/.vscode/settings.json
