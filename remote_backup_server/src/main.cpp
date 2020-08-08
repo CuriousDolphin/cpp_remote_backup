@@ -33,7 +33,7 @@ public:
 
     static pointer create(boost::asio::io_context &io_context)
     {
-        std::cout << "CREATE NEW CONNECTION" << std::endl;
+        std::cout << std::this_thread::get_id() << " CREATE NEW CONNECTION" << std::endl;
         return pointer(new tcp_connection(io_context));
     }
 
@@ -45,7 +45,7 @@ public:
     void start()
     {
         message_ = make_daytime_string();
-        std::cout << "START WRITE " << message_ << std::endl;
+        std::cout << std::this_thread::get_id() << " START WRITE " << message_ << std::endl;
         boost::asio::async_write(socket_, boost::asio::buffer(message_),
                                  boost::bind(&tcp_connection::handle_write, shared_from_this(),
                                              boost::asio::placeholders::error,
@@ -106,6 +106,7 @@ int main()
 {
     try
     {
+        std::cout << std::this_thread::get_id() << " START SERVER " << std::endl;
         boost::asio::io_context io_context;
         tcp_server server(io_context);
         io_context.run();
