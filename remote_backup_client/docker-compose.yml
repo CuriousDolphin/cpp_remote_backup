@@ -1,0 +1,15 @@
+version: "3"
+services:
+  client:
+    build: .
+
+    image: remote_backup_client
+    container_name: remote_backup_client
+    ports:
+      - "4444:4444"
+      - "5555:5555"
+    volumes:
+      - ./src:/remote_backup_server/src
+      - ./my_sync_folder:/remote_backup_client/my_sync_folder
+    working_dir: /remote_backup_server/src
+    command: bash -c -s "ls && cmake . && make && ./remote_backup_client"

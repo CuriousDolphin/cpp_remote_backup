@@ -12,4 +12,4 @@ services:
       - ./src:/remote_backup_server/src
     working_dir: /remote_backup_server/src
     command: bash -c -s "ls && cmake . && make && ./remote_backup_server"
-    #command: ./remote_backup_client
+      
