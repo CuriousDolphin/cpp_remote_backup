@@ -1,146 +1,135 @@
-//
-// server.cpp
-// ~~~~~~~~~~
-//
-// Copyright (c) 2003-2020 Christopher M. Kohlhoff (chris at kohlhoff dot com)
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
-
-#include <ctime>
+#include <cstdlib>
 #include <iostream>
-#include <string>
-#include <boost/bind/bind.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
+#include <boost/bind.hpp>
 #include <boost/asio.hpp>
-#include <boost/array.hpp>
 
 using boost::asio::ip::tcp;
-
-std::string make_daytime_string()
-{
-    using namespace std; // For time_t, time and ctime;
-    time_t now = time(0);
-    return ctime(&now);
-}
-// We will use shared_ptr and enable_shared_from_this because
-// we want to keep the tcp_connection object alive as long as there is an operation that refers to it.
-
-class tcp_connection : public boost::enable_shared_from_this<tcp_connection>
+int cont = 0;
+class session
 {
 public:
-    typedef boost::shared_ptr<tcp_connection> pointer;
-
-    static pointer create(boost::asio::io_context &io_context)
+    session(boost::asio::io_service &io_service)
+        : socket_(io_service), id(++cont)
     {
-        std::cout << std::this_thread::get_id() << " CREATE NEW CONNECTION" << std::endl;
-        return pointer(new tcp_connection(io_context));
     }
 
     tcp::socket &socket()
     {
         return socket_;
     }
-    // In the function start(), we call boost::asio::async_write() to serve the data to the client. Note that we are using boost::asio::async_write(),
-    // rather than ip::tcp::socket::async_write_some(), to ensure that the entire block of data is sent.
+
     void start()
     {
-        message_ = make_daytime_string();
-        // std::cout << std::this_thread::get_id() << " START WRITE " << message_ << std::endl;
-        /* boost::asio::async_write(socket_, boost::asio::buffer(message_),
-                                 boost::bind(&tcp_connection::handle_write, shared_from_this(),
-                                             boost::asio::placeholders::error,
-                                             boost::asio::placeholders::bytes_transferred)); */
-
-        boost::asio::async_read(socket_, boost::asio::buffer(buf), boost::bind(&tcp_connection::handler, shared_from_this(), boost::asio::placeholders::error));
+        socket_.async_read_some(boost::asio::buffer(data_, max_length),
+                                boost::bind(&session::handle_read, this,
+                                            boost::asio::placeholders::error,
+                                            boost::asio::placeholders::bytes_transferred));
     }
 
-    void handler(
-        const boost::system::error_code &error // Result of operation.
-
-        /* std::size_t bytes_transferred */) // Number of bytes copied into the
-                                             // buffers. If an error occurred,
-                                             // this will be the  number of
-                                             // bytes successfully transferred
-                                             // prior to the error.
+    void delete_session()
     {
-        std::string s = socket().remote_endpoint().address().to_string();
+        std::cout << "DELETE SESSION:" << id << std::endl;
+        delete this;
+    }
 
-        std::cout << "REQ FROM  " << s << std::endl;
+    void handle_read(const boost::system::error_code &error,
+                     size_t bytes_transferred)
+    {
+        std::cout << "SESSION # " << id << " read " << data_ << " from " << socket().remote_endpoint().address().to_string() << std::endl;
         if (!error)
         {
-            std::cout << "RECEIVED " << buf.data() << std::endl;
-        };
+
+            boost::asio::async_write(socket_,
+                                     boost::asio::buffer(data_, bytes_transferred),
+                                     boost::bind(&session::handle_write, this,
+                                                 boost::asio::placeholders::error));
+        }
+        else
+        {
+            delete_session();
+        }
+    }
+
+    void handle_write(const boost::system::error_code &error)
+    {
+        //   std::cout << " write " << data_ << " from " << socket().remote_endpoint().address().to_string() << std::endl;
+        if (!error)
+        {
+            socket_.async_read_some(boost::asio::buffer(data_, max_length),
+                                    boost::bind(&session::handle_read, this,
+                                                boost::asio::placeholders::error,
+                                                boost::asio::placeholders::bytes_transferred));
+        }
+        else
+        {
+            delete_session();
+        }
     }
 
 private:
-    tcp_connection(boost::asio::io_context &io_context)
-        : socket_(io_context)
-    {
-    }
-
-    void handle_write(const boost::system::error_code & /*error*/,
-                      size_t /*bytes_transferred*/)
-    {
-    }
-
-    boost::array<char, 1> buf;
-
+    int id;
     tcp::socket socket_;
-    std::string message_;
+    enum
+    {
+        max_length = 1024
+    };
+    char data_[max_length];
 };
 
-class tcp_server
+class server
 {
 public:
-    tcp_server(boost::asio::io_context &io_context)
-        : io_context_(io_context),
-          acceptor_(io_context, tcp::endpoint(tcp::v4(), 4444))
+    server(boost::asio::io_service &io_service, short port)
+        : io_service_(io_service),
+          acceptor_(io_service, tcp::endpoint(tcp::v4(), 4444))
     {
-        start_accept();
+        session *new_session = new session(io_service_);
+        acceptor_.async_accept(new_session->socket(),
+                               boost::bind(&server::handle_accept, this, new_session,
+                                           boost::asio::placeholders::error));
     }
 
-private:
-    // creates a socket and initiates an asynchronous accept operation to wait for a new connection.
-    void start_accept()
-    {
-        tcp_connection::pointer new_connection = tcp_connection::create(io_context_);
-
-        acceptor_.async_accept(new_connection->socket(),
-                               boost::bind(&tcp_server::handle_accept, this, new_connection, boost::asio::placeholders::error));
-    }
-
-    // The function handle_accept() is called when the asynchronous accept operation initiated by start_accept() finishes.
-    // It services the client request, and then calls start_accept() to initiate the next accept operation.
-    void handle_accept(tcp_connection::pointer new_connection,
+    void handle_accept(session *new_session,
                        const boost::system::error_code &error)
     {
         if (!error)
         {
-            new_connection->start();
+            std::cout << "HANDLE ACCEPT" << std::endl;
+            new_session->start();
+            new_session = new session(io_service_);
+            acceptor_.async_accept(new_session->socket(),
+                                   boost::bind(&server::handle_accept, this, new_session,
+                                               boost::asio::placeholders::error));
         }
-
-        start_accept();
+        else
+        {
+            delete new_session;
+        }
     }
 
-    boost::asio::io_context &io_context_;
+private:
+    boost::asio::io_service &io_service_;
     tcp::acceptor acceptor_;
 };
 
 int main()
 {
+    // todo take from env docker
+    std::cout << "START SERVER" << std::endl;
+    int port = 4444;
     try
     {
-        std::cout << std::this_thread::get_id() << " START SERVER " << std::endl;
-        boost::asio::io_context io_context;
-        tcp_server server(io_context);
-        io_context.run();
+
+        boost::asio::io_service io_service;
+
+        using namespace std; // For atoi.
+        server s(io_service, 4444);
+
+        io_service.run();
     }
     catch (std::exception &e)
     {
-        std::cerr << e.what() << std::endl;
+        std::cerr << "Exception: " << e.what() << "\n";
     }
 
     return 0;
