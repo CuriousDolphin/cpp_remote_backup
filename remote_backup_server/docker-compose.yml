@@ -7,9 +7,9 @@ services:
     container_name: remote_backup_server
     ports:
       - "4444:4444"
-      - "5555:5555"
+    expose:
+      - "4444"
     volumes:
       - ./src:/remote_backup_server/src
     working_dir: /remote_backup_server/src
     command: bash -c -s "ls && cmake . && make && ./remote_backup_server"
-      

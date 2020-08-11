@@ -5,8 +5,10 @@ services:
     image: remote_backup_client
     container_name: remote_backup_client
     ports:
-      - "4444:4444"
-      - "5555:5555"
+      - "5555:4444"
+      - "6456:5555"
+    expose:
+      - "5555"
     volumes:
       - ./src:/remote_backup_client/src
       - ./my_sync_folder:/remote_backup_client/my_sync_folder

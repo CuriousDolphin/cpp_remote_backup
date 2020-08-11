@@ -15,6 +15,7 @@ RUN apt-get update \
   openssh-server\
   libssl-dev\
   libboost-all-dev\
+  netcat\
   && apt-get clean
 #WORKDIR /remote_backup_client
 #COPY /src ./

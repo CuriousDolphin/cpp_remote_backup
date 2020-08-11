@@ -35,7 +35,9 @@ public:
     void handle_read(const boost::system::error_code &error,
                      size_t bytes_transferred)
     {
-        std::cout << "SESSION # " << id << " read " << data_ << " from " << socket().remote_endpoint().address().to_string() << std::endl;
+        unsigned short uiClientPort = socket().remote_endpoint().port();
+
+        std::cout << "SESSION # " << id << " read " << data_ << " from " << socket().remote_endpoint().address().to_string() << ":" << uiClientPort << std::endl;
         if (!error)
         {
 
@@ -119,9 +121,7 @@ int main()
     int port = 4444;
     try
     {
-
         boost::asio::io_service io_service;
-
         using namespace std; // For atoi.
         server s(io_service, 4444);
 

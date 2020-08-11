@@ -1,7 +1,16 @@
 #include <iostream>
 #include "file_watcher.h"
+#include <boost/asio.hpp>
+#include "client.h"
 int main()
 {
+    boost::asio::io_context io_context;
+
+    boost::asio::ip::tcp::resolver resolver(io_context);
+    auto endpoints = resolver.resolve("127.0.0.1", "4444");
+    client c(io_context, endpoints);
+    std::thread t([&io_context]() { io_context.run(); });
+
     std::cout << "STARTING CLIENT v4" << std::endl;
     // Create a FileWatcher instance that will check the current folder for changes every 5 seconds
     FileWatcher fw{"../my_sync_folder", std::chrono::milliseconds(5000)};

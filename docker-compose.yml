@@ -15,10 +15,9 @@ services:
     image: remote_backup_client
     container_name: remote_backup_client_full
     ports:
-      - "5555:5555"
+      - "5555:4444"
     volumes:
       - ./remote_backup_client/src:/remote_backup_client/src
       - ./remote_backup_client/my_sync_folder:/remote_backup_client/my_sync_folder
     working_dir: /remote_backup_client/src
     command: bash -c -s "ls && cmake . && make && ./remote_backup_client"
-      
