@@ -37,12 +37,12 @@ public:
     {
         unsigned short uiClientPort = socket().remote_endpoint().port();
 
-        std::cout << "SESSION # " << id << " read " << data_ << " from " << socket().remote_endpoint().address().to_string() << ":" << uiClientPort << std::endl;
+        std::cout << "SESSION # " << id <<" thread"<<std::this_thread::get_id() <<" read " << data_ << " from " << socket().remote_endpoint().address().to_string() << ":" << uiClientPort << std::endl;
         if (!error)
         {
-
+            
             boost::asio::async_write(socket_,
-                                     boost::asio::buffer(data_, bytes_transferred),
+                                     boost::asio::buffer("ciao", 4),
                                      boost::bind(&session::handle_write, this,
                                                  boost::asio::placeholders::error));
         }
@@ -57,10 +57,11 @@ public:
         //   std::cout << " write " << data_ << " from " << socket().remote_endpoint().address().to_string() << std::endl;
         if (!error)
         {
-            socket_.async_read_some(boost::asio::buffer(data_, max_length),
-                                    boost::bind(&session::handle_read, this,
-                                                boost::asio::placeholders::error,
-                                                boost::asio::placeholders::bytes_transferred));
+            start();
+           // socket_.async_read_some(boost::asio::buffer(data_, max_length),
+                                //    boost::bind(&session::handle_read, this,
+                                     //           boost::asio::placeholders::error,
+           //boost::asio::placeholders::bytes_transferred));
         }
         else
         {
@@ -73,7 +74,7 @@ private:
     tcp::socket socket_;
     enum
     {
-        max_length = 1024
+        max_length = 5
     };
     char data_[max_length];
 };

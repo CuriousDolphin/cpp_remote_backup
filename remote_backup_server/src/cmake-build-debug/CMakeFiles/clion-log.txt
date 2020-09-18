@@ -1,0 +1,4 @@
+Cannot generate into /Users/ivan/workspace/cpp_remote_backup/remote_backup_server/src
+It is already used for project /remote_backup_server/src
+
+Please either delete it manually or select another generation directory
