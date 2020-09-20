@@ -5,6 +5,6 @@ set(CMAKE_CXX_STANDARD 17)
 include_directories(asio/include)
 include_directories(asio/include/asio)
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DASIO_STANDALONE -pthread")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DASIO_STANDALONE -DASIO_NO_DEPRECATED -pthread")
 
 add_executable(test main.cpp asio)
