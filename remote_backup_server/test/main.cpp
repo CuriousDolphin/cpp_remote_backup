@@ -15,6 +15,7 @@
 #include <asio/ts/buffer.hpp>
 #include <asio/ts/internet.hpp>
 #include <asio.hpp>
+#include <asio/io_service.hpp>
 #include <map>
 #include <vector>
 #include <future>
@@ -26,7 +27,7 @@
 using asio::ip::tcp;
 using namespace std;
 int MAX_QUEUE_LEN = 20;
-
+int NUM_THREADS=8;
 
 template<class T>
 class Jobs {
@@ -75,11 +76,11 @@ public:
 };
 
 
-class Session
+class Session: public std::enable_shared_from_this<Session>
 
 {
 public:
-    Session(tcp::socket socket,asio::io_context& io_context)
+    Session(tcp::socket socket)
             : socket_(std::move(socket))
     {
         std::cout<<" new session "<<std::this_thread::get_id()<<std::endl;
@@ -87,32 +88,35 @@ public:
 
     void start()
     {
-        std::cout<<" session start"<<std::this_thread::get_id()<<std::endl;
+      //  do_write_str("BENVENUTO STRONZO");
         do_read();
+    }
+    ~Session(){
+        cout<<"DELETED SESSION"<<endl;
     }
 
 private:
     void do_read()
-    {
-        std::cout<<" do read "<<std::this_thread::get_id()<<std::endl;
+    {   auto self(shared_from_this());
         socket_.async_read_some(asio::buffer(data_, max_length),
-                                [this](std::error_code ec, std::size_t length)
+                                [this,self](std::error_code ec, std::size_t length)
                                 {
                                     if (!ec)
                                     {
                                         std::cout<<std::this_thread::get_id()<<" READ :"<<data_<<std::endl;
+                                        do_read();
 
-                                        do_write(length);
+                                        //do_write(length);
                                     }
-                                    else std::cout<<std::this_thread::get_id()<<" ERROR :"<<ec.message()<<std::endl;
+                                    else std::cout<<std::this_thread::get_id()<<" ERROR :"<<ec.message()<<" CODE "<<ec.value() << std::endl;
                                 });
     }
 
     void do_write(std::size_t length)
     {
-        //auto self(shared_from_this());
+        auto self(shared_from_this());
         asio::async_write(socket_, asio::buffer(data_, length),
-                          [this](std::error_code ec, std::size_t /*length*/)
+                          [this,self](std::error_code ec, std::size_t /*length*/)
                           {
                               if (!ec)
                               {
@@ -120,6 +124,21 @@ private:
                               }
                           });
     }
+
+    void do_write_str(std::string str)
+    {
+        auto self(shared_from_this());
+
+        asio::async_write(socket_, asio::buffer(str, 10),
+                          [this,self](std::error_code ec, std::size_t /*length*/)
+                          {
+                              if (!ec)
+                              {
+                                  do_read();
+                              } else std::cout<<std::this_thread::get_id()<<" ERROR :"<<ec.message()<<" CODE "<<ec.value() << std::endl;
+                          });
+    }
+
 
     tcp::socket socket_;
     enum { max_length = 1024 };
@@ -134,26 +153,43 @@ class server
 {
 public:
     server(asio::io_context& io_context, short port)
-            : acceptor_(io_context, tcp::endpoint(tcp::v4(), port)),
-              socket_(io_context)
-    {
+            : acceptor_(io_context, tcp::endpoint(tcp::v4(), port))
 
+    {
+        std::cout<<"START SERVER: THREAD"<<std::this_thread::get_id()<<std::endl;
+        io_context_= &io_context;
         do_accept();
+    }
+
+    void run(){
+        std::vector<std::thread> threads;
+        for(int n = 0; n < NUM_THREADS; ++n)
+            threads.emplace_back([this](){
+                std::cout<<"START  THREAD"<<std::this_thread::get_id()<<std::endl;
+                io_context_->run();
+            });
+
+        for(auto& thread : threads)
+        {
+            if(thread.joinable())
+            {
+                std::cout<<"JOINED  THREAD"<<thread::id()<<std::endl;
+                thread.join();
+            }
+        }
     }
 
 private:
     void do_accept()
     {
-        acceptor_.async_accept(socket_,
-                               [this](std::error_code ec)
+        std::cout<<std::this_thread::get_id() <<" DO ACCEPT"<<std::endl;
+        acceptor_.async_accept(
+                               [this](std::error_code ec,tcp::socket socket)
                                {
                                    if (!ec)
                                    {
-                                        std::cout<<"NEW ACCEPT"<<std::endl;
-                                        //jobs.put(Session(std::move(socket_)));
-                                        jobs.put(std::move(socket_));
-
-                                       //std::make_shared<Session>(std::move(socket_))->start();
+                                        std::cout<<std::this_thread::get_id() <<" NEW ACCEPT"<<std::endl;
+                                        std::make_shared<Session>(std::move(socket))->start();
                                    }
 
                                    do_accept();
@@ -161,7 +197,8 @@ private:
     }
 
     tcp::acceptor acceptor_;
-    tcp::socket socket_;
+    asio::io_context *io_context_;
+
 };
 
 
@@ -170,59 +207,36 @@ int main(int argc, char* argv[])
 {
     try
     {
+       // asio::io_service io_service_;
 
-        asio::io_service io_service io_service_;
+       // asio::io_service io_service io_service_;
 
          asio::io_context io_context;
 
-        std::cout<<"NUM THREADs"<<std::thread::hardware_concurrency()<<std::endl;
-        // Prepare things
-        std::vector<std::thread> threads;
-        auto count = std::thread::hardware_concurrency() * 2;
-
-        for(int n = 0; n < count; ++n)
-            threads.emplace_back([&io_context](){
-                //io_context.run();
-                // std::cout<<"START THREAD"<<std::this_thread::get_id()<<std::endl;
-               // server s(io_context, 5555);
-
-                while (true) {
-                    optional<tcp::socket> sock = jobs.get();
-                    if (!sock.has_value()) {
-                        std::cout<<"NO VALUE"<<std::endl;
-                        break;
-                    }
-                    std::cout<<"NEW socket"<<std::endl;
-
-                    Session s(std::move(sock.value()),io_context);
-                    io_context.run();
-                    s.start();
-
-                }
-
-                });
 
 
 
-
-
-
-
-
-
-        std::cout<<"START SERVER: THREAD"<<std::this_thread::get_id()<<std::endl;
 
         server s(io_context, 5555);
-
-        io_context.run();
+        std::vector<std::thread> threads;
+        for(int n = 0; n < NUM_THREADS; ++n)
+            threads.emplace_back([&io_context](){
+                //std::cout<<"START  THREAD"<<std::this_thread::get_id()<<std::endl;
+                io_context.run();
+            });
 
         for(auto& thread : threads)
         {
             if(thread.joinable())
             {
+                std::cout<<"JOINED  THREAD"<<thread::id()<<std::endl;
                 thread.join();
             }
-        } */
+        }
+        //io_context.run();
+        //s.run();
+
+
     }
     catch (std::exception& e)
     {
