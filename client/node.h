@@ -6,7 +6,6 @@
 #include <string>
 #include <functional>
 #include "to_time_t.h"
-#include "../../.CLion2019.3/system/.remote/localhost_7776/1ef00c66-462e-459d-9ec2-c47af9bf136d/usr/include/c++/9/sstream"
 
 class Node
 {
