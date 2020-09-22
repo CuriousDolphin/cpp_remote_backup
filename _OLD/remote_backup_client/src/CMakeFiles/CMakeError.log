@@ -1,0 +1,15 @@
+Determining if the include file pthread.h exists failed with the following output:
+Change Dir: C:/Users/isnob/CLionProjects/cpp_remote_backup/remote_backup_client/src/CMakeFiles/CMakeTmp
+
+Run Build Command(s):nmake /nologo cmTC_2f098\fast && 	"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.25.28610\bin\HostX86\x86\nmake.exe" -f CMakeFiles\cmTC_2f098.dir\build.make /nologo -L                  CMakeFiles\cmTC_2f098.dir\build
+Building C object CMakeFiles/cmTC_2f098.dir/CheckIncludeFile.c.obj
+	"C:\PROGRA~2\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.25.28610\bin\Hostx86\x86\cl.exe" @C:\Users\isnob\AppData\Local\Temp\nm912E.tmp
+CheckIncludeFile.c
+C:\Users\isnob\CLionProjects\cpp_remote_backup\remote_backup_client\src\CMakeFiles\CMakeTmp\CheckIncludeFile.c(1): fatal error C1083: Non è possibile aprire il file inclusione: 'pthread.h': No such file or directory
+NMAKE : fatal error U1077: '"C:\PROGRA~2\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.25.28610\bin\Hostx86\x86\cl.exe"' : codice restituito '0x2'
+Stop.
+NMAKE : fatal error U1077: '"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.25.28610\bin\HostX86\x86\nmake.exe"' : codice restituito '0x2'
+Stop.
+
+
+

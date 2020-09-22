@@ -1,0 +1,30 @@
+"C:\Program Files\JetBrains\CLion 2019.3.5\bin\cmake\win\bin\cmake.exe" -DCMAKE_BUILD_TYPE= -G "CodeBlocks - NMake Makefiles" C:\Users\isnob\CLionProjects\cpp_remote_backup\remote_backup_client\src
+-- The C compiler identification is MSVC 19.25.28614.0
+-- The CXX compiler identification is MSVC 19.25.28614.0
+-- Check for working C compiler: C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.25.28610/bin/Hostx86/x86/cl.exe
+-- Check for working C compiler: C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.25.28610/bin/Hostx86/x86/cl.exe -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Check for working CXX compiler: C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.25.28610/bin/Hostx86/x86/cl.exe
+-- Check for working CXX compiler: C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.25.28610/bin/Hostx86/x86/cl.exe -- works
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Looking for pthread.h
+-- Looking for pthread.h - not found
+-- Found Threads: TRUE  
+CMake Error at C:/Program Files/JetBrains/CLion 2019.3.5/bin/cmake/win/share/cmake-3.15/Modules/FindPackageHandleStandardArgs.cmake:137 (message):
+  Could NOT find Boost (missing: Boost_INCLUDE_DIR system filesystem thread)
+  (Required is at least version "1.67.0")
+Call Stack (most recent call first):
+  C:/Program Files/JetBrains/CLion 2019.3.5/bin/cmake/win/share/cmake-3.15/Modules/FindPackageHandleStandardArgs.cmake:378 (_FPHSA_FAILURE_MESSAGE)
+  C:/Program Files/JetBrains/CLion 2019.3.5/bin/cmake/win/share/cmake-3.15/Modules/FindBoost.cmake:2161 (find_package_handle_standard_args)
+  CMakeLists.txt:8 (find_package)
+
+
+-- Configuring incomplete, errors occurred!
+See also "C:/Users/isnob/CLionProjects/cpp_remote_backup/remote_backup_client/src/CMakeFiles/CMakeOutput.log".
+See also "C:/Users/isnob/CLionProjects/cpp_remote_backup/remote_backup_client/src/CMakeFiles/CMakeError.log".
