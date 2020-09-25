@@ -28,6 +28,8 @@
 #include <string>
 #include <boost/algorithm/string.hpp>
 #include "db.h"
+
+const int LEN_BUFF = 1024;
 const std::map<std::string, int> commands = {{"LOGIN", 1},
                                              {"GET",   2},
                                              {"PUT",   3},
@@ -37,33 +39,28 @@ using namespace std;
 
 class Session : public std::enable_shared_from_this<Session> {
 public:
-    Session(tcp::socket socket,Db* db)
-            : socket_(std::move(socket)),user_("") {
-        cout << " new session " << std::this_thread::get_id() << endl;
-        db_=db;
-
+    Session(tcp::socket socket, Db *db)
+            : socket_(std::move(socket)), user_(""), db_(db){
+        cout << " new session " << this_thread::get_id() << endl;
     }
 
     void start() {
-        //  do_write_str("BENVENUTO STRONZO");
-
-        read_command();
+        read_request();
     }
 
     ~Session() {
         socket_.cancel();
-        cout << "DELETED SESSION" << endl;
+        cout << "DELETED SESSION "<<user_ << endl;
     }
 
 private:
-    void read_command() {
+    void read_request() {
         auto self(shared_from_this());
-        socket_.async_read_some(boost::asio::buffer(data_, max_length),
+        socket_.async_read_some(boost::asio::buffer(data_, LEN_BUFF),
                                 [this, self](std::error_code ec, std::size_t length) {
                                     if (!ec) {
                                         // std::cout<<std::this_thread::get_id()<<" READ :"<<data_<<std::endl;
-                                        handle_request(length);
-                                        //do_write(length);
+                                        handle_request();
                                     } else
                                         std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
                                                   << " CODE " << ec.value() << std::endl;
@@ -71,78 +68,74 @@ private:
     }
 
     // TODO ADD HASHING
-    bool login(const std::string user,const std::string pwd){
-        string savedpwd=db_->get(user);
-        if(savedpwd==pwd){
-            user_=user; // !!important!!
+    bool login(const string &user, const string& pwd) {
+        string savedpwd = db_->get(user);
+        if (savedpwd == pwd) {
+            user_ = user; // !!important!!
             return true;
-        }else{
+        } else {
             return false;
         }
     }
 
-    void handle_request(std::size_t length) {
-        std::cout << "LENGTH REQUEST: " <<length<< std::endl;
-        std::vector<std::string> tmp(4); // parsed values
-        std::vector<std::string> tmp1(4); // support
-
-
+    void handle_request() {
+        vector<string> params(4); // parsed values
+        vector<string> tmp1(4); // support
         boost::split(tmp1, data_, boost::is_any_of("\n")); // take one line
-        boost::split(tmp, tmp1[0], boost::is_any_of(" ")); // split by space
+        boost::split(params, tmp1[0], boost::is_any_of(" ")); // split by space
 
-        std::cout << " REQUEST: " << std::endl;
+        cout << " REQUEST: " << std::endl;
 
-        for (int i = 0; i < tmp.size(); i++) {
-            std::cout << "\t\t"  << tmp[i] << std::endl;
+        for (int i = 0; i < params.size(); i++) {
+            cout << "\t\t" << params[i] << std::endl;
         }
-        int command = -1;
+        int action = -1;
         try {
-            command = commands.at(tmp[0]);
+            action = commands.at(params[0]);
         }
         catch (const std::exception &) {
-            std::cout << "UNKNOWN COMMAND" << std::endl;
-            do_write_str("Unknown command...Bye!");
+            cout << "UNKNOWN COMMAND" << std::endl;
+            write_str("Unknown command...Bye!");
             return;
         }
 
-        switch (command) {
-            case 1: {
-                std::cout << "DO LOGIN" << std::endl;
-                if (tmp.size() < 3) {
-                    do_write_str("Wrong number arguments...Bye!");
+        switch (action) {
+            case 1: { // LOGIN
+                if (params.size() < 3) {
+                    write_str("Wrong number arguments...Bye!");
                     return;
                 }
-                std::string user = tmp.at(1);
-                std::string pwd = tmp.at(2);
-                bool res = login(user,pwd);
-                if(res){
-                    std::cout<<"====== WELCOME "<<user_<<std::endl;
-                    do_write_str("OK\n");
-                    read_command();
-                }else{
-                    std::cout<<"WRONG CREDENTIALS"<<std::endl;
-                    do_write_str("Wrong credentials...Bye!");
+                string user = params.at(1);
+                string pwd = params.at(2);
+                bool res = login(user, pwd);
+                if (res) {
+                    std::cout << "====== WELCOME " << user_ << std::endl;
+                    write_str("OK\n");
+                    read_request();
+                } else {
+                    std::cout << "WRONG CREDENTIALS" << std::endl;
+                    write_str("Wrong credentials...Bye!");
                 }
 
             }
                 break;
-            case 2: {
-                std::cout << "DO GET" << std::endl;
-                read_command();
+            case 2:  // GET
+            {
+                read_request();
             }
 
                 break;
-            case 3: {
-                std::cout << "DO PUT" << std::endl;
-                read_command();
+            case 3: // PUT
+            {
+                read_request();
             }
+                break;
+            case 4: // PATCH
+            {
+                read_request();
+            }
+                break;
 
-                break;
-            case 4: {
-                std::cout << "PATCH" << std::endl;
-                read_command();
-            }
-                break;
         }
 
 
@@ -158,12 +151,12 @@ private:
                                  });
     }
 
-    void do_write_str(std::string str) {
+    void write_str(std::string str) {
         auto self(shared_from_this());
         boost::asio::async_write(socket_, boost::asio::buffer(str, str.size()),
                                  [this, self](std::error_code ec, std::size_t /*length*/) {
                                      if (!ec) {
-                                        // do_read();
+                                         // do_read();
                                      } else
                                          std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
                                                    << " CODE " << ec.value() << std::endl;
@@ -172,11 +165,9 @@ private:
 
 
     tcp::socket socket_;
-    enum {
-        max_length = 1024
-    };
-    char data_[max_length];
-    Db* db_;
+
+    char data_[LEN_BUFF]{};
+    Db *db_;
     std::string user_;
 
 };
