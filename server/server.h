@@ -25,16 +25,17 @@
 #include <condition_variable>
 #include <cpp_redis/cpp_redis>
 #include "session.h"
-
+#include "db.h"
 using boost::asio::ip::tcp;
 
 class server
 {
 public:
-    server(boost::asio::io_context& io_context, short port)
+    server(boost::asio::io_context& io_context, short port,Db* db)
             : acceptor_(io_context, tcp::endpoint(tcp::v4(), port))
 
     {
+        db_=db;
         std::cout<<"START SERVER: THREAD"<<std::this_thread::get_id()<<std::endl;
         //io_context_= &io_context;
         do_accept();
@@ -68,7 +69,7 @@ private:
                     if (!ec)
                     {
                         std::cout<<std::this_thread::get_id() <<" NEW ACCEPT"<<std::endl;
-                        std::make_shared<Session>(std::move(socket))->start();
+                        std::make_shared<Session>(std::move(socket),db_)->start();
                     }
 
                     do_accept();
@@ -76,6 +77,7 @@ private:
     }
 
     tcp::acceptor acceptor_;
+    Db* db_;
     //  boost::asio::io_context *io_context_;
 
 };

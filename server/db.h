@@ -1,7 +1,7 @@
 //
 // Created by isnob on 24/09/2020.
 //
-
+#pragma once
 #ifndef SERVER_DB_H
 #define SERVER_DB_H
 
@@ -17,11 +17,23 @@ public:
         redis_client.set(key, value);
         redis_client.sync_commit();
     }
-    void get(const std::string& key){
-        redis_client.get(key, [](cpp_redis::reply& reply) {
-            std::cout << reply.as_string() << std::endl;
-        });
+    std::string get(const std::string& key){
+        std::future<cpp_redis::reply> future=redis_client.get(key);
         redis_client.sync_commit();
+        future.wait();
+        cpp_redis::reply reply=future.get();
+
+        if(reply.is_error() || reply.is_null()){
+            return "";
+        }else{
+            return reply.as_string();
+        }
+
+
+    }
+
+    void exist(const std::string& key){
+       // redis_client.exists(key);
     }
 private:
     void connect(){

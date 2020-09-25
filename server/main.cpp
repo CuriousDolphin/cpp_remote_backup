@@ -8,22 +8,16 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#include <cstdlib>
 #include <iostream>
-#include <memory>
-#include <utility>
+
 #include <boost/asio/ts/buffer.hpp>
 #include <boost/asio/ts/internet.hpp>
-#include <boost/asio.hpp>
-#include <boost/asio/io_service.hpp>
-#include <map>
+
 #include <vector>
 #include <future>
-#include <fstream>
-#include <queue>
+
 #include <optional>
-#include <condition_variable>
-#include <cpp_redis/cpp_redis>
+
 #include "server.h"
 #include "db.h"
 
@@ -40,13 +34,13 @@ int main()
     {
         Db db(6379);
 
-        db.set("ivan","mypwd");
+        db.set("ivan","mimmo");
         db.get("ivan");
 
 
         //! or client.commit(); for asynchronous call
         boost::asio::io_context io_context;
-        server s(io_context, 5555);
+        server s(io_context, 5555,&db);
         std::vector<std::thread> threads;
         for(int n = 0; n < NUM_THREADS; ++n)
             threads.emplace_back([&io_context](){
