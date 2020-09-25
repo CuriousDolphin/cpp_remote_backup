@@ -35,6 +35,7 @@ int main()
         Db db(6379);
 
         db.set("ivan","mimmo");
+        db.set("marco","marco");
         db.get("ivan");
 
 

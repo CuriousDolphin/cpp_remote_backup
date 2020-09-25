@@ -40,7 +40,7 @@ using namespace std;
 class Session : public std::enable_shared_from_this<Session> {
 public:
     Session(tcp::socket socket, Db *db)
-            : socket_(std::move(socket)), user_(""), db_(db){
+            : socket_(std::move(socket)), user_(""), db_(db) {
         cout << " new session " << this_thread::get_id() << endl;
     }
 
@@ -50,7 +50,7 @@ public:
 
     ~Session() {
         socket_.cancel();
-        cout << "DELETED SESSION "<<user_ << endl;
+        cout << "DELETED SESSION " << user_ << endl;
     }
 
 private:
@@ -66,9 +66,30 @@ private:
                                                   << " CODE " << ec.value() << std::endl;
                                 });
     }
+    void read_and_save_file(const std::string& file_name,int len) {
+        auto self(shared_from_this());
+
+
+        socket_.async_read_some(boost::asio::buffer(data_, len),
+                                [this,file_name, self](std::error_code ec, std::size_t length) {
+                                    if (!ec) {
+                                         std::cout<<std::this_thread::get_id()<<" READ FILE:"<<length<<std::endl;
+                                         data_[length] = EOF;
+                                        std::ofstream outfile (file_name);
+                                        outfile << data_ << std::endl;
+                                        outfile.close();
+                                        std::cout<<std::this_thread::get_id()<<" SAVED FILE:"<<file_name<<std::endl;
+                                        read_request();
+
+
+                                    } else
+                                        std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
+                                                  << " CODE " << ec.value() << std::endl;
+                                });
+    }
 
     // TODO ADD HASHING
-    bool login(const string &user, const string& pwd) {
+    bool login(const string &user, const string &pwd) {
         string savedpwd = db_->get(user);
         if (savedpwd == pwd) {
             user_ = user; // !!important!!
@@ -84,7 +105,7 @@ private:
         boost::split(tmp1, data_, boost::is_any_of("\n")); // take one line
         boost::split(params, tmp1[0], boost::is_any_of(" ")); // split by space
 
-        cout << " REQUEST: " << std::endl;
+        cout<<std::this_thread::get_id() << " REQUEST: " << std::endl;
 
         for (int i = 0; i < params.size(); i++) {
             cout << "\t\t" << params[i] << std::endl;
@@ -121,13 +142,25 @@ private:
                 break;
             case 2:  // GET
             {
+
                 read_request();
             }
 
                 break;
             case 3: // PUT
             {
-                read_request();
+                if (params.size() < 3) {
+                    write_str("Wrong number arguments...Bye!");
+                    return;
+                }
+                string path = params.at(1);
+                int len = std::stoi(params.at(2));
+
+                cout << path << "   " << len << endl;
+                read_and_save_file(path,len);
+
+
+              //  read_request();
             }
                 break;
             case 4: // PATCH
