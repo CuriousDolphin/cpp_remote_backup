@@ -40,10 +40,23 @@ public:
 
         ifstream myfile;
         myfile.open(n.getPath(), ios::out | ios::app | ios::binary);
+        if(myfile.fail())
+            cout<<"failed to open file"<<endl;
+        auto fileSize = myfile.tellg();
+        myfile.seekg(0, myfile.beg);
+        myfile.read(data_, LEN_BUFF);
+        if (myfile.fail() && !myfile.eof()) {
+            cout<<"Failed while reading file"<<endl;
+        }
+        std::stringstream ss;
+        ss << "Send " << myfile.gcount() << " bytes, total: "
+           << myfile.tellg() << " bytes";
+        std::cout << ss.str() << std::endl;
 
-        boost::asio::async_write(socket_, boost::asio::buffer(myfile.rdbuf(), n.getSize()),
+        boost::asio::async_write(socket_, boost::asio::buffer(data_, n.getSize()),
                 [this](std::error_code ec, std::size_t length) {
                     if (!ec) {
+                        cout<<"SEND OK "<<length<<endl;
                         read_response();
                     } else {
                         std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()

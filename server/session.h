@@ -73,11 +73,14 @@ private:
         socket_.async_read_some(boost::asio::buffer(data_, len),
                                 [this,file_name, self](std::error_code ec, std::size_t length) {
                                     if (!ec) {
-                                         std::cout<<std::this_thread::get_id()<<" READ FILE:"<<length<<std::endl;
-                                         data_[length] = EOF;
+                                         std::cout<<std::this_thread::get_id()<<" READ FILE LEN:"<<length<<std::endl;
+
                                         std::ofstream outfile (file_name);
-                                        outfile << data_ << std::endl;
+                                        outfile.write(data_.data(),length);
                                         outfile.close();
+                                        if(outfile.fail()){
+                                            cout<<"FAILED CREATING FILE"<<endl;
+                                        }
                                         std::cout<<std::this_thread::get_id()<<" SAVED FILE:"<<file_name<<std::endl;
                                         read_request();
 
@@ -203,7 +206,7 @@ private:
 
     tcp::socket socket_;
 
-    char data_[LEN_BUFF]{};
+    array<char,LEN_BUFF> data_;
     Db *db_;
     std::string user_;
 
