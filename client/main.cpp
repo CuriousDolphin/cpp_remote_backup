@@ -30,7 +30,8 @@ int main()
                 std::cout << "CREATED: \n"
                           << node.toString() << '\n';
 
-                c.do_write_str("PUT "+node.toPathSizeTime() );
+                c.do_write_str("PUT "+node.toPathSizeTimeHash() );
+                c.write_file(node);
 
                 break;
             case FileStatus::modified:

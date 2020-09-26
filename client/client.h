@@ -8,13 +8,14 @@ const std::map<std::string, int> commands = {{"LOGIN", 1},
                                              {"PUT",   3},
                                              {"PATCH", 4}};
 const int LEN_BUFF = 1024;
+
 class client {
 public:
     client(boost::asio::io_context &io_context,
-           const tcp::resolver::results_type &endpoints,const string name, const string pwd)
+           const tcp::resolver::results_type &endpoints, const string name, const string pwd)
             : io_context_(io_context),
               socket_(io_context, tcp::endpoint(tcp::v4(), 4444)) {
-        connect(endpoints, name,  pwd);
+        connect(endpoints, name, pwd);
     }
 
     tcp::socket &socket() {
@@ -34,6 +35,23 @@ public:
                                  });
     }
 
+    // TO DO CHUNK ME
+    void write_file(Node n) {
+
+        ifstream myfile;
+        myfile.open(n.getPath(), ios::out | ios::app | ios::binary);
+
+        boost::asio::async_write(socket_, boost::asio::buffer(myfile.rdbuf(), n.getSize()),
+                [this](std::error_code ec, std::size_t length) {
+                    if (!ec) {
+                        read_response();
+                    } else {
+                        std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
+                                  << " CODE " << ec.value() << std::endl;
+                    }
+
+                });
+    }
 
 
 private:
@@ -46,17 +64,18 @@ private:
         socket_.async_read_some(boost::asio::buffer(data_, LEN_BUFF),
                                 [this](std::error_code ec, std::size_t length) {
                                     if (!ec) {
-                                         std::cout<<std::this_thread::get_id()<<" READ :"<<data_<<std::endl;
+                                        std::cout << std::this_thread::get_id() << " READ :" << data_ << std::endl;
                                     } else
                                         std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
                                                   << " CODE " << ec.value() << std::endl;
                                 });
     }
+
     void login(const string name, const string pwd) {
 
         string tmp = "LOGIN " + name + " " + pwd + "\n";
         boost::asio::async_write(socket_, boost::asio::buffer(tmp, tmp.length()),
-                                 [this,tmp](std::error_code ec, std::size_t length) {
+                                 [this, tmp](std::error_code ec, std::size_t length) {
                                      if (!ec) {
                                          read_response();
                                      } else {
@@ -66,12 +85,13 @@ private:
 
                                  });
     }
-    void connect(const tcp::resolver::results_type &endpoints,const string name, const string pwd) {
+
+    void connect(const tcp::resolver::results_type &endpoints, const string name, const string pwd) {
         boost::asio::async_connect(socket_, endpoints,
-                                   [this,name,pwd](boost::system::error_code ec, tcp::endpoint) {
+                                   [this,  name,  pwd](boost::system::error_code ec, tcp::endpoint) {
                                        if (!ec) {
                                            std::cout << "CONNECTED TO SERVER" << std::endl;
-                                           login(name,pwd);
+                                           login(name, pwd);
                                            //   do_read_header();
                                        } else {
                                            std::cout << "FAILED CONNECTION" << ec << std::endl;

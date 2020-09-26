@@ -100,7 +100,7 @@ private:
     }
 
     void handle_request() {
-        vector<string> params(4); // parsed values
+        vector<string> params(5); // parsed values
         vector<string> tmp1(4); // support
         boost::split(tmp1, data_, boost::is_any_of("\n")); // take one line
         boost::split(params, tmp1[0], boost::is_any_of(" ")); // split by space
@@ -160,6 +160,7 @@ private:
                 string path = params.at(1);
                 int len = std::stoi(params.at(2));
                 int time = std::stoi(params.at(3));
+                cout<<path<<" "<<len<<" "<<endl;
                 read_and_save_file(path,len);
 
 

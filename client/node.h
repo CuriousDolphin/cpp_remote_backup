@@ -5,7 +5,10 @@
 #include <unordered_map>
 #include <string>
 #include <functional>
+#include <boost/algorithm/string.hpp>
+#include <future>
 
+using namespace std;
 class Node
 {
     std::string path;
@@ -29,7 +32,9 @@ public:
     {
         hash_histories.push_back(hash);
     }
-
+    uintmax_t getSize(){
+        return size;
+    }
     void setSize(uintmax_t s)
     {
         size = s;
@@ -43,12 +48,25 @@ public:
         return buffer.str();
     }
 
-    std::string toPathSizeTime()
+    std::string getPath()
+
+    {
+        return path;
+    }
+
+    std::string getName(){
+        vector<string> tmp;
+        boost::split(tmp,path,boost::is_any_of("/"));
+        return tmp[tmp.size()-1];
+    }
+
+
+    std::string toPathSizeTimeHash()
 
     {
         std::ostringstream buffer;
         //buffer << path << " " << size << " " << last_write_time;
-        buffer << "file1.txt" << " " << size << " " << last_write_time;
+        buffer << getName() << " " << size << " " << last_write_time<<" "<<getLastHash();
         return buffer.str();
     }
 
