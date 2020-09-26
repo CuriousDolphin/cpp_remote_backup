@@ -33,11 +33,7 @@ int main()
     try
     {
         Db db(6379);
-
-        db.set("ivan","mimmo");
-        db.set("marco","marco");
         db.get("ivan");
-
 
         //! or client.commit(); for asynchronous call
         boost::asio::io_context io_context;
