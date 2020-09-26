@@ -5,7 +5,6 @@
 #include <unordered_map>
 #include <string>
 #include <functional>
-#include "to_time_t.h"
 
 class Node
 {
@@ -39,9 +38,17 @@ public:
     std::string toString()
 
     {
-
         std::ostringstream buffer;
         buffer << path << "\t\n(history): " << getHistory() << "\t\n(size): " << size << "\t\n(time): " << last_write_time;
+        return buffer.str();
+    }
+
+    std::string toPathSizeTime()
+
+    {
+        std::ostringstream buffer;
+        //buffer << path << " " << size << " " << last_write_time;
+        buffer << "file1.txt" << " " << size << " " << last_write_time;
         return buffer.str();
     }
 

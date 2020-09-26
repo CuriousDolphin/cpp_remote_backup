@@ -8,10 +8,11 @@ int main()
 
     boost::asio::ip::tcp::resolver resolver(io_context);
     auto endpoints = resolver.resolve("localhost", "5555");
-    client c(io_context, endpoints);
+
+    client c(io_context, endpoints,"ivan","mimmo");
+
     std::thread t([&io_context]() { io_context.run(); });
 
-    std::cout << "STARTING CLIENT v4" << std::endl;
     // Create a FileWatcher instance that will check the current folder for changes every 5 seconds
     FileWatcher fw{"../my_sync_folder", std::chrono::milliseconds(5000)};
 
@@ -29,7 +30,7 @@ int main()
                 std::cout << "CREATED: \n"
                           << node.toString() << '\n';
 
-                c.do_write_str("CREATED "+node.toString() );
+                c.do_write_str("PUT "+node.toPathSizeTime() );
 
                 break;
             case FileStatus::modified:

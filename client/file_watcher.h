@@ -7,8 +7,8 @@
 #include <string>
 #include <functional>
 #include "node.h"
-#include "hasher.h"
-
+#include "../shared/hasher.h"
+#include "../shared/to_time_t.h"
 // Define available file changes
 enum class FileStatus
 {

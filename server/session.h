@@ -104,12 +104,14 @@ private:
         vector<string> tmp1(4); // support
         boost::split(tmp1, data_, boost::is_any_of("\n")); // take one line
         boost::split(params, tmp1[0], boost::is_any_of(" ")); // split by space
-
-        cout<<std::this_thread::get_id() << " REQUEST: " << std::endl;
+        cout << "-------------------------------------" << std::endl;
+        cout<<this_thread::get_id() << " REQUEST "<<"FROM "<<user_ <<": "<< std::endl;
+        cout << "-------------------------------------" << std::endl;
 
         for (int i = 0; i < params.size(); i++) {
-            cout << "\t\t" << params[i] << std::endl;
+            cout <<i<< "\t" << params[i] << std::endl;
         }
+        cout << "-------------------------------------" << std::endl;
         int action = -1;
         try {
             action = commands.at(params[0]);
@@ -130,11 +132,13 @@ private:
                 string pwd = params.at(2);
                 bool res = login(user, pwd);
                 if (res) {
-                    std::cout << "====== WELCOME " << user_ << std::endl;
+                    cout << "RESPONSE: OK" << std::endl;
                     write_str("OK\n");
+                    cout << "-------------------------------------" << std::endl;
                     read_request();
                 } else {
-                    std::cout << "WRONG CREDENTIALS" << std::endl;
+                    cout<<"RESPONSE: WRONG CREDENTIALS"<<endl;
+                    cout << "-------------------------------------" << std::endl;
                     write_str("Wrong credentials...Bye!");
                 }
 
@@ -155,8 +159,7 @@ private:
                 }
                 string path = params.at(1);
                 int len = std::stoi(params.at(2));
-
-                cout << path << "   " << len << endl;
+                int time = std::stoi(params.at(3));
                 read_and_save_file(path,len);
 
 
