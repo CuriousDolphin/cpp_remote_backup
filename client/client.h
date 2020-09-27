@@ -40,30 +40,56 @@ public:
 
         ifstream myfile;
         myfile.open(n.getPath(), ios::out | ios::app | ios::binary);
-        if(myfile.fail())
+        if(myfile.fail()){
             cout<<"failed to open file"<<endl;
+            return;
+        }
+
         auto fileSize = myfile.tellg();
+        cout<<"OPEN FILE LEN: "<<fileSize<<endl;
         myfile.seekg(0, myfile.beg);
-        myfile.read(data_, LEN_BUFF);
-        if (myfile.fail() && !myfile.eof()) {
+
+        read_file_and_write(myfile,n.getSize());
+
+
+    }
+
+    void read_file_and_write(ifstream& file,std::size_t size){
+
+        size_t n_to_send;
+        if(size>LEN_BUFF){
+            n_to_send=LEN_BUFF;
+
+        }else{
+            n_to_send=size;
+
+        }
+        file.read(data_, n_to_send);
+
+        if (file.fail() && !file.eof()) {
             cout<<"Failed while reading file"<<endl;
         }
+        cout<<data_<<endl;
         std::stringstream ss;
-        ss << "Send " << myfile.gcount() << " bytes, total: "
-           << myfile.tellg() << " bytes";
-        std::cout << ss.str() << std::endl;
+        /* ss << "Readed " << file.gcount() << " bytes, total: "
+           << file.tellg() << " bytes";
+        std::cout << ss.str() << std::endl;*/
 
-        boost::asio::async_write(socket_, boost::asio::buffer(data_, n.getSize()),
-                [this](std::error_code ec, std::size_t length) {
-                    if (!ec) {
-                        cout<<"SEND OK "<<length<<endl;
-                        read_response();
-                    } else {
-                        std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
-                                  << " CODE " << ec.value() << std::endl;
-                    }
 
-                });
+
+        boost::asio::async_write(socket_, boost::asio::buffer(data_, n_to_send),
+                                 [this,&file,&size](std::error_code ec, std::size_t length) {
+                                     if (!ec) {
+                                         std::cout<<"SUCCESS SENT BYTES : "<<length<<endl;
+                                         read_file_and_write(file,size-length);
+
+                                     } else {
+                                         std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
+                                                   << " CODE " << ec.value() << std::endl;
+                                     }
+
+                                 });
+
     }
 
 
