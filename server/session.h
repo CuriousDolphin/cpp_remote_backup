@@ -66,36 +66,29 @@ private:
                                                   << " CODE " << ec.value() << std::endl;
                                 });
     }
-    void read_and_save_file(std::ofstream & file ,int len) {
+    void read_and_save_file(const std::string& file_name,int len) {
         auto self(shared_from_this());
-        std::cout<<std::this_thread::get_id()<<" READ FILE LEN:"<<len<<std::endl;
-
-        if(len >    0)
-        {
-            socket_.async_read_some(boost::asio::buffer(data_, len),
-                                    [this,&file, self,len](std::error_code ec, std::size_t length) {
-                                        if (!ec) {
-                                            std::cout<<std::this_thread::get_id()<<" READ :"<<length<<std::endl;
 
 
-                                            file.write(data_.data(),length);
-                                            read_and_save_file(file,len-length);
+        socket_.async_read_some(boost::asio::buffer(data_, len),
+                                [this,file_name, self](std::error_code ec, std::size_t length) {
+                                    if (!ec) {
+                                         std::cout<<std::this_thread::get_id()<<" READ FILE LEN:"<<length<<std::endl;
+
+                                        std::ofstream outfile (file_name);
+                                        outfile.write(data_.data(),length);
+                                        outfile.close();
+                                        if(outfile.fail()){
+                                            cout<<"FAILED CREATING FILE"<<endl;
+                                        }
+                                        std::cout<<std::this_thread::get_id()<<" SAVED FILE:"<<file_name<<std::endl;
+                                        read_request();
 
 
-
-
-                                        } else
-                                            std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
-                                                      << " CODE " << ec.value() << std::endl;
-                                    });
-        }else{
-            file.close();
-            if(file.fail()){
-             cout<<"FAILED CREATING FILE"<<endl;
-             }
-            std::cout<<std::this_thread::get_id()<<" SAVED FILE"<<std::endl;
-        }
-
+                                    } else
+                                        std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
+                                                  << " CODE " << ec.value() << std::endl;
+                                });
     }
 
     // TODO ADD HASHING
@@ -171,9 +164,7 @@ private:
                 int len = std::stoi(params.at(2));
                 int time = std::stoi(params.at(3));
                 cout<<path<<" "<<len<<" "<<endl;
-                std::ofstream outfile (path);
-                read_and_save_file(outfile,len);
-                read_request();
+                read_and_save_file(path,len);
 
 
               //  read_request();
