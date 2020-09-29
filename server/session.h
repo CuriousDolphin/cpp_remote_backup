@@ -40,7 +40,7 @@ using namespace std;
 class Session : public std::enable_shared_from_this<Session> {
 public:
     Session(tcp::socket socket, Db *db)
-            : socket_(std::move(socket)), user_(""), db_(db) {
+            : _socket(std::move(socket)), _user(""), _db(db) {
         cout << " new session " << this_thread::get_id() << endl;
     }
 
@@ -49,37 +49,44 @@ public:
     }
 
     ~Session() {
-        socket_.cancel();
-        cout << "DELETED SESSION " << user_ << endl;
+        _socket.cancel();
+        cout << "DELETED SESSION " << _user << endl;
     }
 
 private:
     void read_request() {
         auto self(shared_from_this());
-        socket_.async_read_some(boost::asio::buffer(data_, LEN_BUFF),
+
+
+
+        //std::size_t read  = _socket.read_some(boost::asio::buffer(_data, LEN_BUFF));
+        //cout<<"READ REQUEST:"<<read<<endl;
+
+
+       _socket.async_read_some(boost::asio::buffer(_data, LEN_BUFF),
                                 [this, self](std::error_code ec, std::size_t length) {
                                     if (!ec) {
-                                        // std::cout<<std::this_thread::get_id()<<" READ :"<<data_<<std::endl;
+                                        // std::cout<<std::this_thread::get_id()<<" READ :"<<_data<<std::endl;
                                         handle_request();
                                     } else
                                         std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
                                                   << " CODE " << ec.value() << std::endl;
                                 });
     }
-    void read_and_save_file(std::ofstream & file ,int len) {
+    void read_and_save_file( int len) {
         auto self(shared_from_this());
-        std::cout<<std::this_thread::get_id()<<" READ FILE LEN:"<<len<<std::endl;
+       // std::cout<<std::this_thread::get_id()<<" READ FILE LEN:"<<len<<std::endl;
 
-        if(len >    0)
+        if(len > 0)
         {
-            socket_.async_read_some(boost::asio::buffer(data_, len),
-                                    [this,&file, self,len](std::error_code ec, std::size_t length) {
+            _socket.async_read_some(boost::asio::buffer(_data, len),
+                                    [this, self,len](std::error_code ec, std::size_t length) {
                                         if (!ec) {
-                                            std::cout<<std::this_thread::get_id()<<" READ :"<<length<<std::endl;
+                                         //   std::cout<<std::this_thread::get_id()<<" READ :"<<_data.data()<<std::endl;
 
 
-                                            file.write(data_.data(),length);
-                                            read_and_save_file(file,len-length);
+                                            _outfile.write(_data.data(),length);
+                                            read_and_save_file(len-length);
 
 
 
@@ -89,20 +96,22 @@ private:
                                                       << " CODE " << ec.value() << std::endl;
                                     });
         }else{
-            file.close();
-            if(file.fail()){
+
+            _outfile.close();
+            if(_outfile.fail()){
              cout<<"FAILED CREATING FILE"<<endl;
              }
             std::cout<<std::this_thread::get_id()<<" SAVED FILE"<<std::endl;
+            read_request();
         }
 
     }
 
     // TODO ADD HASHING
     bool login(const string &user, const string &pwd) {
-        string savedpwd = db_->get(user);
+        string savedpwd = _db->get(user);
         if (savedpwd == pwd) {
-            user_ = user; // !!important!!
+            _user = user; // !!important!!
             return true;
         } else {
             return false;
@@ -112,10 +121,10 @@ private:
     void handle_request() {
         vector<string> params(5); // parsed values
         vector<string> tmp1(4); // support
-        boost::split(tmp1, data_, boost::is_any_of("\n")); // take one line
+        boost::split(tmp1, _data, boost::is_any_of("\n")); // take one line
         boost::split(params, tmp1[0], boost::is_any_of(" ")); // split by space
         cout << "-------------------------------------" << std::endl;
-        cout<<this_thread::get_id() << " REQUEST "<<"FROM "<<user_ <<": "<< std::endl;
+        cout<<this_thread::get_id() << " REQUEST "<<"FROM "<<_user <<": "<< std::endl;
         cout << "-------------------------------------" << std::endl;
 
         for (int i = 0; i < params.size(); i++) {
@@ -135,7 +144,7 @@ private:
         switch (action) {
             case 1: { // LOGIN
                 if (params.size() < 3) {
-                    write_str("Wrong number arguments...Bye!");
+                    write_str_sync("Wrong number arguments...Bye!");
                     return;
                 }
                 string user = params.at(1);
@@ -143,13 +152,13 @@ private:
                 bool res = login(user, pwd);
                 if (res) {
                     cout << "RESPONSE: OK" << std::endl;
-                    write_str("OK\n");
+                    write_str_sync("OK\n");
                     cout << "-------------------------------------" << std::endl;
                     read_request();
                 } else {
                     cout<<"RESPONSE: WRONG CREDENTIALS"<<endl;
                     cout << "-------------------------------------" << std::endl;
-                    write_str("Wrong credentials...Bye!");
+                    write_str_sync("Wrong credentials...Bye!");
                 }
 
             }
@@ -164,19 +173,18 @@ private:
             case 3: // PUT
             {
                 if (params.size() < 3) {
-                    write_str("Wrong number arguments...Bye!");
+                    write_str_sync("Wrong number arguments...Bye!");
                     return;
                 }
                 string path = params.at(1);
                 int len = std::stoi(params.at(2));
                 int time = std::stoi(params.at(3));
-                cout<<path<<" "<<len<<" "<<endl;
-                std::ofstream outfile (path);
-                read_and_save_file(outfile,len);
-                read_request();
+                 _outfile.open(path);
+                read_and_save_file(len);
+               // read_request();
 
 
-              //  read_request();
+               // read_request();
             }
                 break;
             case 4: // PATCH
@@ -192,7 +200,7 @@ private:
 
     void do_write(std::size_t length) {
         auto self(shared_from_this());
-        boost::asio::async_write(socket_, boost::asio::buffer(data_, length),
+        boost::asio::async_write(_socket, boost::asio::buffer(_data, length),
                                  [this, self](std::error_code ec, std::size_t /*length*/) {
                                      if (!ec) {
                                          //do_read();
@@ -202,7 +210,7 @@ private:
 
     void write_str(std::string str) {
         auto self(shared_from_this());
-        boost::asio::async_write(socket_, boost::asio::buffer(str, str.size()),
+        boost::asio::async_write(_socket, boost::asio::buffer(str, str.size()),
                                  [this, self](std::error_code ec, std::size_t /*length*/) {
                                      if (!ec) {
                                          // do_read();
@@ -211,12 +219,16 @@ private:
                                                    << " CODE " << ec.value() << std::endl;
                                  });
     }
+    void write_str_sync(std::string str) {
+        _socket.write_some(boost::asio::buffer(str, str.size()));
+
+    }
 
 
-    tcp::socket socket_;
-
-    array<char,LEN_BUFF> data_;
-    Db *db_;
-    std::string user_;
+    tcp::socket _socket;
+    std::ofstream _outfile;
+    array<char,LEN_BUFF> _data;
+    Db *_db;
+    std::string _user;
 
 };
