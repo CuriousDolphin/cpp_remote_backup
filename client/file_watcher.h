@@ -67,7 +67,7 @@ public:
                 std::filesystem::file_time_type time = std::filesystem::last_write_time(file);
                 long int current_file_last_write_time = to_timestamp(time);
                 // CREATION
-                if (!contains(file.path().string()))
+                if (!contains(file.path().string())  )
                 {
 
                     Node tmp = createNode(file);

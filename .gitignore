@@ -6,3 +6,7 @@ client/.idea/*
 client/.idea/workspace.xml
 .idea
 client/my_sync_folder
+/server/data
+server/data
+server/data/*
+server/data/

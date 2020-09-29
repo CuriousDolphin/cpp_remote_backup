@@ -31,11 +31,14 @@
 #include "../shared/const.h"
 #include <boost/algorithm/string_regex.hpp>
 #include <boost/regex.hpp>
+#include <boost/filesystem.hpp>
+
 //const int LEN_BUFF = 1024;
 const std::map<std::string, int> commands = {{"LOGIN", 1},
                                              {"GET",   2},
                                              {"PUT",   3},
                                              {"PATCH", 4}};
+const std::string DATA_DIR="../data/";
 using boost::asio::ip::tcp;
 using namespace std;
 
@@ -177,10 +180,15 @@ private:
                     return;
                 }
                 string path = params.at(1);
-                string fullpath="./"+_user+path;
+                string user_dir=DATA_DIR+_user;
+                string full_path=user_dir+'/'+path;
+
+                create_dirs(full_path);
+
                 int len = std::stoi(params.at(2));
                 int time = std::stoi(params.at(3));
-                 _outfile.open(fullpath);
+
+                 _outfile.open(full_path);
                  if(_outfile.fail()){
                      cout<<"FILE OPEN ERROR"<<endl;
                  }
@@ -200,6 +208,16 @@ private:
         }
 
 
+    }
+    // create directories if doesnt  exist
+    void create_dirs(string path){
+        try {
+            boost::filesystem::path dirPath(path);
+            boost::filesystem::create_directories(dirPath.parent_path());
+        }
+        catch(const boost::filesystem::filesystem_error& err) {
+            std::cerr << err.what() << std::endl;
+        }
     }
 
     void do_write(std::size_t length) {

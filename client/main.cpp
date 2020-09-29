@@ -4,6 +4,7 @@
 #include "client.h"
 #include "../shared/job.h"
 #include "../shared/duration_logger.h"
+const std::string path_to_watch="../my_sync_folder";
 int main() {
     boost::asio::io_context io_context;
 
@@ -16,7 +17,7 @@ int main() {
     Jobs<std::tuple<FileStatus, Node>> jobs;
 
     // Create a FileWatcher instance that will check the current folder for changes every 5 seconds
-    FileWatcher fw{"../my_sync_folder", std::chrono::milliseconds(5000)};
+    FileWatcher fw{path_to_watch, std::chrono::milliseconds(5000)};
     std::thread t([&io_context, &jobs, &client]() {
         cout << "IO_THREAD: " << this_thread::get_id() << endl;
         io_context.run();
@@ -62,9 +63,15 @@ int main() {
     fw.start([&jobs](Node node, FileStatus status) -> void {
         // Process only regular files, all other file types are ignored
         //if(!std::filesystem::is_regular_file(std::filesystem::path(path_to_watch)) && status != FileStatus::erased) {
-        //     return;
-        //  }
-        jobs.put(std::make_tuple(status, node));
+          //   return;
+          //}
+
+
+
+          if(!node.is_dir()){
+              jobs.put(std::make_tuple(status, node));
+          }
+
 
     });
 
