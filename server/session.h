@@ -28,8 +28,10 @@
 #include <string>
 #include <boost/algorithm/string.hpp>
 #include "db.h"
-
-const int LEN_BUFF = 1024;
+#include "../shared/const.h"
+#include <boost/algorithm/string_regex.hpp>
+#include <boost/regex.hpp>
+//const int LEN_BUFF = 1024;
 const std::map<std::string, int> commands = {{"LOGIN", 1},
                                              {"GET",   2},
                                              {"PUT",   3},
@@ -64,7 +66,7 @@ private:
        _socket.async_read_some(boost::asio::buffer(_data, LEN_BUFF),
                                 [this, self](std::error_code ec, std::size_t length) {
                                     if (!ec) {
-                                         std::cout<<std::this_thread::get_id()<<" READ :"<<_data.data()<<"("<<length<<std::endl;
+                                       //  std::cout<<std::this_thread::get_id()<<" READ :"<<_data.data()<<"("<<length<<std::endl;
                                         handle_request();
                                     } else
                                         std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
@@ -120,7 +122,7 @@ private:
         vector<string> params; // parsed values
         vector<string> tmp1(4); // support
         boost::split(tmp1, _data, boost::is_any_of("\n")); // take one line
-        boost::split(params, tmp1[0], boost::is_any_of(" ")); // split by __
+        boost::split_regex(params, tmp1[0], boost::regex(PARAM_DELIMITER)); // split by __
         cout << "-------------------------------------" << std::endl;
         cout<<this_thread::get_id() << " REQUEST "<<"FROM "<<_user <<": "<< std::endl;
         cout << "-------------------------------------" << std::endl;
@@ -175,9 +177,13 @@ private:
                     return;
                 }
                 string path = params.at(1);
+                string fullpath="./"+_user+path;
                 int len = std::stoi(params.at(2));
                 int time = std::stoi(params.at(3));
-                 _outfile.open(path);
+                 _outfile.open(fullpath);
+                 if(_outfile.fail()){
+                     cout<<"FILE OPEN ERROR"<<endl;
+                 }
                 read_and_save_file(len);
                // read_request();
 

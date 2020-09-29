@@ -7,6 +7,7 @@
 #include <functional>
 #include <boost/algorithm/string.hpp>
 #include <future>
+#include "../shared/const.h"
 
 using namespace std;
 class Node
@@ -66,7 +67,8 @@ public:
     {
         std::ostringstream buffer;
         //buffer << path << " " << size << " " << last_write_time;
-        buffer << getName() << " " << size << " " << last_write_time<<" "<<getLastHash();
+        string tmp=path;
+        buffer << tmp.erase(0,2)<< PARAM_DELIMITER << size << PARAM_DELIMITER << last_write_time<< PARAM_DELIMITER<<getLastHash()<<endl;
         return buffer.str();
     }
 

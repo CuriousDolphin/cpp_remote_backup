@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 
-add_executable(server main.cpp server.h session.h db.h)
+add_executable(server main.cpp server.h session.h db.h ../shared/const.h)
 
 find_package(Boost )
 IF (Boost_FOUND)
@@ -14,5 +14,5 @@ IF (Boost_FOUND)
     message(STATUS "Boost_VERSION: ${Boost_VERSION}")
     message("BOOST   FOUND")
     include_directories(${Boost_INCLUDE_DIR})
-    target_link_libraries(server ${Boost_LIBRARIES} ssl crypto cpp_redis tacopie )
+    target_link_libraries(server ${Boost_LIBRARIES} ssl crypto cpp_redis tacopie -lboost_regex )
 endif()

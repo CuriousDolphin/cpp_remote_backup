@@ -1,5 +1,6 @@
 #include <boost/asio.hpp>
 #include <iostream>
+#include "../shared/const.h"
 
 using boost::asio::ip::tcp;
 using namespace std;
@@ -7,7 +8,7 @@ const std::map<std::string, int> commands = {{"LOGIN", 1},
                                              {"GET",   2},
                                              {"PUT",   3},
                                              {"PATCH", 4}};
-const int LEN_BUFF = 1024;
+//const int LEN_BUFF = 1024;
 
 class client {
 public:
@@ -36,7 +37,7 @@ public:
     }
 
     void do_put(Node n) {
-        string str = "PUT__" + n.toPathSizeTimeHash();
+        string str = "PUT" + n.toPathSizeTimeHash();
         boost::asio::async_write(socket_, boost::asio::buffer(str, str.length()),
                                  [this, str, n](std::error_code ec, std::size_t length) {
                                      if (!ec) {
@@ -50,7 +51,7 @@ public:
     }
 
     void do_put_sync(Node n) {
-        string str = "PUT__" + n.toPathSizeTimeHash();
+        string str = "PUT"+PARAM_DELIMITER + n.toPathSizeTimeHash()+PARAM_DELIMITER;
         size_t ris = socket_.write_some(boost::asio::buffer(str, str.length()));
         _file.open(n.getPath(), ios::out | ios::app | ios::binary);
         if (_file.fail()) {
@@ -181,7 +182,7 @@ private:
 
     void login(const string name, const string pwd) {
 
-        string tmp = "LOGIN " + name + " " + pwd+"\n" ;
+        string tmp = "LOGIN"+PARAM_DELIMITER + name  +PARAM_DELIMITER + pwd+"\n" ;
 
 
         boost::asio::async_write(socket_, boost::asio::buffer(tmp, tmp.length()),
