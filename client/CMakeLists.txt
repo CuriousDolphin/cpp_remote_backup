@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread ")
 
-add_executable(client main.cpp file_watcher.h node.h ../shared/hasher.h ../shared/to_time_t.h client.h)
+add_executable(client main.cpp file_watcher.h node.h ../shared/hasher.h ../shared/to_time_t.h ../shared/duration_logger.h ../shared/job.h client.h)
 find_package(Boost)
 IF (Boost_FOUND)
     message(STATUS "Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")

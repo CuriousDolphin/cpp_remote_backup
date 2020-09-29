@@ -61,12 +61,10 @@ private:
 
         //std::size_t read  = _socket.read_some(boost::asio::buffer(_data, LEN_BUFF));
         //cout<<"READ REQUEST:"<<read<<endl;
-
-
        _socket.async_read_some(boost::asio::buffer(_data, LEN_BUFF),
                                 [this, self](std::error_code ec, std::size_t length) {
                                     if (!ec) {
-                                        // std::cout<<std::this_thread::get_id()<<" READ :"<<_data<<std::endl;
+                                         std::cout<<std::this_thread::get_id()<<" READ :"<<_data.data()<<"("<<length<<std::endl;
                                         handle_request();
                                     } else
                                         std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
@@ -82,7 +80,7 @@ private:
             _socket.async_read_some(boost::asio::buffer(_data, len),
                                     [this, self,len](std::error_code ec, std::size_t length) {
                                         if (!ec) {
-                                         //   std::cout<<std::this_thread::get_id()<<" READ :"<<_data.data()<<std::endl;
+                                            //std::cout<<std::this_thread::get_id()<<" READ :"<<_data.data()<<std::endl;
 
 
                                             _outfile.write(_data.data(),length);
@@ -119,10 +117,10 @@ private:
     }
 
     void handle_request() {
-        vector<string> params(5); // parsed values
+        vector<string> params; // parsed values
         vector<string> tmp1(4); // support
         boost::split(tmp1, _data, boost::is_any_of("\n")); // take one line
-        boost::split(params, tmp1[0], boost::is_any_of(" ")); // split by space
+        boost::split(params, tmp1[0], boost::is_any_of(" ")); // split by __
         cout << "-------------------------------------" << std::endl;
         cout<<this_thread::get_id() << " REQUEST "<<"FROM "<<_user <<": "<< std::endl;
         cout << "-------------------------------------" << std::endl;

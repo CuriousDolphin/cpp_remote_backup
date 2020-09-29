@@ -36,7 +36,7 @@ public:
     }
 
     void do_put(Node n) {
-        string str = "PUT " + n.toPathSizeTimeHash();
+        string str = "PUT__" + n.toPathSizeTimeHash();
         boost::asio::async_write(socket_, boost::asio::buffer(str, str.length()),
                                  [this, str, n](std::error_code ec, std::size_t length) {
                                      if (!ec) {
@@ -50,7 +50,7 @@ public:
     }
 
     void do_put_sync(Node n) {
-        string str = "PUT " + n.toPathSizeTimeHash();
+        string str = "PUT__" + n.toPathSizeTimeHash();
         size_t ris = socket_.write_some(boost::asio::buffer(str, str.length()));
         _file.open(n.getPath(), ios::out | ios::app | ios::binary);
         if (_file.fail()) {
@@ -71,7 +71,7 @@ public:
             _file.read(data_, n_to_send);
 
             int r = socket_.write_some(boost::asio::buffer(data_, n_to_send));
-            cout << "SEND [" << n_to_send << "]" << "REC [" << r << "]"  << endl;
+           // cout <<this_thread::get_id()<< "SEND [" << n_to_send << "]" << "REC [" << r << "]"  << endl;
 
             size -= r;
 
@@ -181,7 +181,7 @@ private:
 
     void login(const string name, const string pwd) {
 
-        string tmp = "LOGIN " + name + " " + pwd + "\n";
+        string tmp = "LOGIN " + name + " " + pwd+"\n" ;
 
 
         boost::asio::async_write(socket_, boost::asio::buffer(tmp, tmp.length()),
@@ -200,7 +200,7 @@ private:
         boost::asio::async_connect(socket_, endpoints,
                                    [this, name, pwd](boost::system::error_code ec, tcp::endpoint) {
                                        if (!ec) {
-                                           std::cout << "CONNECTED TO SERVER" << std::endl;
+                                           std::cout <<this_thread::get_id() << "CONNECTED TO SERVER" << std::endl;
                                            login(name, pwd);
                                            //   do_read_header();
                                        } else {
