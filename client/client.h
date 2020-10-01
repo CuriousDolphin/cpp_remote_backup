@@ -36,29 +36,19 @@ public:
                                  });
     }
 
-    void do_put(Node n) {
-        string str = "PUT" + n.toPathSizeTimeHash();
-        boost::asio::async_write(socket_, boost::asio::buffer(str, str.length()),
-                                 [this, str, n](std::error_code ec, std::size_t length) {
-                                     if (!ec) {
-                                         std::cout << "Success send file header " << str << std::endl;
-                                         write_file(n);
-                                     } else {
-                                         std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
-                                                   << " CODE " << ec.value() << std::endl;
-                                     }
-                                 });
+    std::string read_sync(){
+        socket_.read_some(boost::asio::buffer(_data.data(), LEN_BUFF));
+        return _data.data();
     }
 
     void do_put_sync(Node n) {
-        string str = "PUT"+PARAM_DELIMITER + n.toPathSizeTimeHash()+PARAM_DELIMITER;
+        string str = "PUT"+PARAM_DELIMITER + n.toPathSizeTimeHash()+REQUEST_DELIMITER;
         size_t ris = socket_.write_some(boost::asio::buffer(str, str.length()));
         _file.open(n.getPath(), ios::out | ios::app | ios::binary);
         if (_file.fail()) {
             cout << "failed to open file" << endl;
             return;
         }
-
         _file.seekg(0, _file.beg);
 
         int size = n.getSize();
@@ -69,9 +59,9 @@ public:
                 n_to_send = LEN_BUFF;
             else
                 n_to_send = size;
-            _file.read(data_, n_to_send);
+            _file.read(_data.data(), n_to_send);
 
-            int r = socket_.write_some(boost::asio::buffer(data_, n_to_send));
+            int r = socket_.write_some(boost::asio::buffer(_data, n_to_send));
            // cout <<this_thread::get_id()<< "SEND [" << n_to_send << "]" << "REC [" << r << "]"  << endl;
 
             size -= r;
@@ -82,84 +72,16 @@ public:
 
     }
 
-    // TO DO CHUNK ME
-    void write_file(Node n) {
-
-
-        _file.open(n.getPath(), ios::out | ios::app | ios::binary);
-        if (_file.fail()) {
-            cout << "failed to open file" << endl;
-            return;
-        }
-
-        _file.seekg(0, _file.beg);
-
-        read_file_and_write(n.getSize());
-
-
+    void handle_response(){
+        vector<string> tmp1(4); // support
+        boost::split(tmp1, _data, boost::is_any_of(REQUEST_DELIMITER));
+        cout<<"RESPONSE: "<<tmp1[0]<<endl;
     }
 
-    void read_file_and_write(std::size_t size) {
-
-        cout << "READ AND  WRITE  size [" << size << "]" << endl;
-
-        if (size <= 0) {
-            _file.close();
-            std::cout << std::this_thread::get_id() << " SEND FILE SUCCESS" << std::endl;
-            read_response();
-            return;
-
-        }
-        size_t n_to_send;
-        if (size > LEN_BUFF) {
-            n_to_send = LEN_BUFF;
-
-        } else {
-            n_to_send = size;
-
-        }
-        cout << "N TO SEND [" << n_to_send << "]" << endl;
-        try {
-            _file.read(data_, n_to_send);
-            cout << "READ FILE" << endl;
-
-
-        } catch (exception e) {
-            cout << "error reading file" << endl;
-        }
-
-
-        if (_file.fail() && !_file.eof()) {
-            cout << "Failed while reading file" << endl;
-        }
-        cout << data_ << endl;
-        std::stringstream ss;
-        /* ss << "Readed " << file.gcount() << " bytes, total: "
-           << file.tellg() << " bytes";
-        std::cout << ss.str() << std::endl;*/
-
-
-
-        boost::asio::async_write(socket_, boost::asio::buffer(data_, n_to_send),
-                                 [this, size](std::error_code ec, std::size_t length) {
-                                     if (!ec) {
-                                         std::cout << "SUCCESS SENT BYTES : l[" << length << "] s[" << size << "]"
-                                                   << endl;
-                                         cout << " NEW SIZE " << size - length << endl;
-                                         read_file_and_write(size - length);
-
-                                     } else {
-                                         std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
-                                                   << " CODE " << ec.value() << std::endl;
-                                     }
-
-                                 });
-
-    }
 
 
 private:
-    char data_[LEN_BUFF]{};
+    array<char,LEN_BUFF> _data   ;
     boost::asio::io_context &io_context_;
     tcp::socket socket_;
     ifstream _file;
@@ -167,11 +89,11 @@ private:
     void read_response() {
         string tmp;
 
-
-        socket_.async_read_some(boost::asio::buffer(data_, LEN_BUFF),
+        _data.fill(0);
+        socket_.async_read_some(boost::asio::buffer(_data, LEN_BUFF),
                                 [this](std::error_code ec, std::size_t length) {
                                     if (!ec) {
-                                        std::cout << std::this_thread::get_id() << " READ_RESPONSE :" << data_
+                                        std::cout << std::this_thread::get_id() << " READ_RESPONSE :" << _data.data()
                                                   << std::endl;
 
                                     } else
@@ -182,7 +104,7 @@ private:
 
     void login(const string name, const string pwd) {
 
-        string tmp = "LOGIN"+PARAM_DELIMITER + name  +PARAM_DELIMITER + pwd+"\n" ;
+        string tmp = "LOGIN"+PARAM_DELIMITER + name  +PARAM_DELIMITER + pwd+REQUEST_DELIMITER ;
 
 
         boost::asio::async_write(socket_, boost::asio::buffer(tmp, tmp.length()),

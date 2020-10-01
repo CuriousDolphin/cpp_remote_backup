@@ -29,6 +29,7 @@
 #include <boost/algorithm/string.hpp>
 #include "db.h"
 #include "../shared/const.h"
+#include "../shared/hasher.h"
 #include <boost/algorithm/string_regex.hpp>
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
@@ -76,23 +77,19 @@ private:
                                                   << " CODE " << ec.value() << std::endl;
                                 });
     }
-    void read_and_save_file( int len) {
+    void read_and_save_file(std::string const & path, int len) {
         auto self(shared_from_this());
        // std::cout<<std::this_thread::get_id()<<" READ FILE LEN:"<<len<<std::endl;
 
         if(len > 0)
         {
             _socket.async_read_some(boost::asio::buffer(_data, len),
-                                    [this, self,len](std::error_code ec, std::size_t length) {
+                                    [this, self,len,path](std::error_code ec, std::size_t length) {
                                         if (!ec) {
                                             //std::cout<<std::this_thread::get_id()<<" READ :"<<_data.data()<<std::endl;
 
-
                                             _outfile.write(_data.data(),length);
-                                            read_and_save_file(len-length);
-
-
-
+                                            read_and_save_file(path,len-length);
 
                                         } else
                                             std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
@@ -103,8 +100,13 @@ private:
             _outfile.close();
             if(_outfile.fail()){
              cout<<"FAILED CREATING FILE"<<endl;
+                read_request();
              }
             std::cout<<std::this_thread::get_id()<<" SAVED FILE"<<std::endl;
+            _db->set(path,getMD5(path));
+            string tmp = _db->get(path);
+            cout<<tmp<<endl;
+            success_response_sync();
             read_request();
         }
 
@@ -120,11 +122,19 @@ private:
             return false;
         }
     }
+    void success_response_sync(){
+        write_str_sync("OK"+REQUEST_DELIMITER);
+    }
+
+    void error_response_sync(){
+        write_str_sync("ERROR"+REQUEST_DELIMITER);
+    }
 
     void handle_request() {
         vector<string> params; // parsed values
         vector<string> tmp1(4); // support
-        boost::split(tmp1, _data, boost::is_any_of("\n")); // take one line
+        boost::split(tmp1, _data, boost::is_any_of(REQUEST_DELIMITER)); // take one line
+        cout<<tmp1[0]<<endl;
         boost::split_regex(params, tmp1[0], boost::regex(PARAM_DELIMITER)); // split by __
         cout << "-------------------------------------" << std::endl;
         cout<<this_thread::get_id() << " REQUEST "<<"FROM "<<_user <<": "<< std::endl;
@@ -155,7 +165,8 @@ private:
                 bool res = login(user, pwd);
                 if (res) {
                     cout << "RESPONSE: OK" << std::endl;
-                    write_str_sync("OK\n");
+                    success_response_sync();
+                  //  write_str_sync("OK\n");
                     cout << "-------------------------------------" << std::endl;
                     read_request();
                 } else {
@@ -183,7 +194,7 @@ private:
                 string user_dir=DATA_DIR+_user;
                 string full_path=user_dir+'/'+path;
 
-                create_dirs(full_path);
+                create_dirs(full_path); // create dirs if not exists
 
                 int len = std::stoi(params.at(2));
                 int time = std::stoi(params.at(3));
@@ -192,7 +203,7 @@ private:
                  if(_outfile.fail()){
                      cout<<"FILE OPEN ERROR"<<endl;
                  }
-                read_and_save_file(len);
+                read_and_save_file(full_path,len);
                // read_request();
 
 
@@ -243,7 +254,6 @@ private:
     }
     void write_str_sync(std::string str) {
         _socket.write_some(boost::asio::buffer(str, str.size()));
-
     }
 
 

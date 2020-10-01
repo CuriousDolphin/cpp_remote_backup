@@ -38,7 +38,13 @@ int main() {
                               << n.toString() << '\n';
                     {
                         DurationLogger dl("put file");
-                        client.do_put_sync(n);
+                        client.do_put_sync(n); // send file ( first heasder, next content)
+                        client.read_sync(); // read response
+                        client.handle_response(); // handle response TODO
+
+
+                       // string ris=client.read_sync();
+                       // cout<<"response: "<<client.read_sync()<<endl;
                     }
 
                     break;
@@ -56,6 +62,7 @@ int main() {
 
         }
     });
+
 
     // Start monitoring a folder for changes and (in case of changes)
     // run a user provided lambda function
@@ -77,3 +84,5 @@ int main() {
     t.join();
     return 0;
 }
+
+
