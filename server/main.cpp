@@ -32,7 +32,13 @@ int main()
 {
     try
     {
+
+
         Db db(6379);
+        db.set("ivan","mimmo");
+        db.set("francesco","mypwd");
+        db.set("alberto","mypwd");
+
         db.get("ivan");
 
         //! or client.commit(); for asynchronous call

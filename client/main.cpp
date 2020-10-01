@@ -41,7 +41,6 @@ int main() {
                         client.do_put_sync(n);
                     }
 
-
                     break;
                 case FileStatus::modified:
                     std::cout << "MODIFIED: " << n.toString() << '\n';
