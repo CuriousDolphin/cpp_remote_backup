@@ -32,8 +32,29 @@ public:
 
     }
 
-    void exist(const std::string& key){
-       // redis_client.exists(key);
+    std::vector<std::string> get_all_starting_with(const std::string& start){
+        std::future<cpp_redis::reply> future=redis_client.hgetall(start);
+        redis_client.sync_commit();
+        future.wait();
+        cpp_redis::reply reply=future.get();
+        std::vector<std::string>  tmp;
+        if(reply.is_error() || reply.is_null()){
+            std::cout<<"error get all starting with "<<start<<std::endl;
+            return tmp;
+        }else{
+            if(reply.is_array()){
+
+                for(auto& reply :reply.as_array()){
+                    std::cout<<reply.as_string()<<std::endl;
+                    tmp.push_back(reply.as_string());
+                }
+                return tmp;
+
+
+
+            }
+        }
+
     }
 private:
     void connect(){

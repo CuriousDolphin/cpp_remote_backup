@@ -40,6 +40,15 @@ int main()
         db.set("alberto","mypwd");
 
         db.get("ivan");
+        string user_dir=DATA_DIR+"ivan";
+        std::vector<string> tmp=db.get_all_starting_with(user_dir);
+        cout<<'['<<endl;
+        for(auto& val:tmp){
+            cout<<val<<endl;
+        }
+        cout<<']'<<endl;
+
+
 
         //! or client.commit(); for asynchronous call
         boost::asio::io_context io_context;
