@@ -245,10 +245,10 @@ private:
     }
 
     void read_user_snapshot(){
-        std::vector<string> tmp=_db->get_user_snapshot(_user);
+        std::map<string,string> tmp=_db->get_user_snapshot(_user);
         cout<<"USER_SNAPSHOT:\n["<<endl;
         for(auto& val:tmp){
-            cout<<val<<endl;
+            cout<<val.first<<":"<<val.second<<endl;
         }
         cout<<']'<<endl;
     }

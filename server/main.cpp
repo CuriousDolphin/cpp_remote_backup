@@ -40,10 +40,10 @@ int main()
         db.set_user_pwd("ivan","mimmo");
 
 
-        std::vector<string> tmp=db.get_user_snapshot("ivan");
+        std::map<string,string> tmp=db.get_user_snapshot("ivan");
         cout<<'['<<endl;
         for(auto& val:tmp){
-            cout<<val<<endl;
+            cout<<val.first<<":"<<val.second<<endl;
         }
         cout<<']'<<endl;
 
