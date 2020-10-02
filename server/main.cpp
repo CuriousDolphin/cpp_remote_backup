@@ -35,13 +35,12 @@ int main()
 
 
         Db db(6379);
-        db.set("ivan","mimmo");
-        db.set("francesco","mypwd");
-        db.set("alberto","mypwd");
 
-        db.get("ivan");
-        string user_dir=DATA_DIR+"ivan";
-        std::vector<string> tmp=db.get_all_starting_with(user_dir);
+
+        db.set_user_pwd("ivan","mimmo");
+
+
+        std::vector<string> tmp=db.get_user_snapshot("ivan");
         cout<<'['<<endl;
         for(auto& val:tmp){
             cout<<val<<endl;

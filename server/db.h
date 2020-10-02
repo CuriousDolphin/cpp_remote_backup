@@ -18,6 +18,36 @@ public:
     void set(const std::string &key, const std::string &value) {
         redis_client.set(key, value);
         redis_client.sync_commit();
+        std::cout<<"[redis]"<<" stored key: "<<key<<std::endl;
+
+    }
+
+
+    void save_user_file_hash(const std::string user,const std::string path,const std::string md5){
+        redis_client.hset("snapshot:"+user,path, md5);
+        redis_client.sync_commit();
+        std::cout<<"[redis]"<<" stored  "<<"snapshot:"+user<<std::endl<<path<<":"<<md5<<std::endl;
+    }
+    void set_user_pwd(const std::string user,const std::string pwd){
+        redis_client.hset("users:",user, pwd);
+        redis_client.sync_commit();
+        std::cout<<"[redis]"<<" set user  "<<user<<std::endl;
+    }
+    std::string get_user_pwd(const std::string &user) {
+        std::future<cpp_redis::reply> future = redis_client.hget("users:",user);
+        redis_client.sync_commit();
+        future.wait();
+        cpp_redis::reply reply = future.get();
+
+        if (reply.is_error() || reply.is_null()) {
+            return "";
+        } else {
+            std::cout<<"[redis]"<<" get user pwd: "<<user<<std::endl;
+            return reply.as_string();
+
+        }
+
+
     }
 
     std::string get(const std::string &key) {
@@ -29,30 +59,29 @@ public:
         if (reply.is_error() || reply.is_null()) {
             return "";
         } else {
+            std::cout<<"[redis]"<<" get key: "<<key<<std::endl;
             return reply.as_string();
+
         }
 
 
     }
 
-    std::vector<std::string> get_all_starting_with(const std::string &start) {
-        std::future<cpp_redis::reply> future = redis_client.hgetall(start);
+    std::vector<std::string> get_user_snapshot(const std::string &user) {
+        std::cout<<"[redis]"<<" GET snapshot: "<<user<<std::endl;
+        std::future<cpp_redis::reply> future = redis_client.hgetall("snapshot:"+user);
         redis_client.sync_commit();
         future.wait();
         cpp_redis::reply reply = future.get();
         std::vector<std::string> tmp;
         if (reply.is_error() || reply.is_null()) {
-            std::cout << "error get all starting with " << start << std::endl;
+            std::cout << "error get user snapshot " << user << std::endl;
             return tmp;
         } else {
             if (reply.is_array()) {
-
                 for (auto &reply :reply.as_array()) {
-                    std::cout << reply.as_string() << std::endl;
                     tmp.push_back(reply.as_string());
                 }
-
-
             }
         }
         return tmp;

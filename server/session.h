@@ -102,11 +102,24 @@ private:
              cout<<"FAILED CREATING FILE"<<endl;
                 read_request();
              }
-            std::cout<<std::this_thread::get_id()<<" SAVED FILE"<<std::endl;
-            _db->set(path,getMD5(path));
+            std::cout<<std::this_thread::get_id()<<" SAVED FILE at ~"<<path<<std::endl;
+            //_db->set(path,getMD5(path));
+
+            _db->save_user_file_hash(_user,path,getMD5(path));
+
+            /*   snapshot:ivan={
+             *                  ../datadir/ivan/file1.txt:45cbf8aef38c570733b4594f345e710c
+             *
+             *              }
+             *
+             * */
+
             string tmp = _db->get(path);
             cout<<tmp<<endl;
             success_response_sync();
+
+            read_user_snapshot();
+
             read_request();
         }
 
@@ -114,7 +127,7 @@ private:
 
     // TODO ADD HASHING
     bool login(const string &user, const string &pwd) {
-        string savedpwd = _db->get(user);
+        string savedpwd = _db->get_user_pwd(user);
         if (savedpwd == pwd) {
             _user = user; // !!important!!
             return true;
@@ -191,8 +204,8 @@ private:
                     return;
                 }
                 string path = params.at(1);
-                string user_dir=DATA_DIR+_user;
-                string full_path=user_dir+'/'+path;
+                string full_path=DATA_DIR+_user+path;
+
 
                 create_dirs(full_path); // create dirs if not exists
 
@@ -229,6 +242,15 @@ private:
         catch(const boost::filesystem::filesystem_error& err) {
             std::cerr << err.what() << std::endl;
         }
+    }
+
+    void read_user_snapshot(){
+        std::vector<string> tmp=_db->get_user_snapshot(_user);
+        cout<<"USER_SNAPSHOT:\n["<<endl;
+        for(auto& val:tmp){
+            cout<<val<<endl;
+        }
+        cout<<']'<<endl;
     }
 
     void do_write(std::size_t length) {
