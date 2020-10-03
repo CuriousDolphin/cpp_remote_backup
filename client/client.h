@@ -41,14 +41,15 @@ public:
         return _data.data();
     }
 
-    void do_put_sync(Node n) {
+    bool do_put_sync(Node n) {
         string str = "PUT"+PARAM_DELIMITER + n.toPathSizeTimeHash()+REQUEST_DELIMITER;
-        size_t ris = socket_.write_some(boost::asio::buffer(str, str.length()));
+
         _file.open(n.getPath(), ios::out | ios::app | ios::binary);
         if (_file.fail()) {
             cout << "failed to open file" << endl;
-            return;
+            return false;
         }
+        size_t ris = socket_.write_some(boost::asio::buffer(str, str.length()));
         _file.seekg(0, _file.beg);
 
         int size = n.getSize();
@@ -68,6 +69,7 @@ public:
 
         }
         _file.close();
+        return true;
 
 
     }

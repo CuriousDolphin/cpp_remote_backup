@@ -14,7 +14,7 @@
 enum class FileStatus {
     created,
     modified,
-    erased
+    erased,
 };
 
 class FileWatcher {
