@@ -38,7 +38,9 @@
 const std::map<std::string, int> commands = {{"LOGIN", 1},
                                              {"GET",   2},
                                              {"PUT",   3},
-                                             {"PATCH", 4}};
+                                             {"PATCH", 4},
+                                             {"SNAPSHOT", 5}
+};
 const std::string DATA_DIR="../data/";
 using boost::asio::ip::tcp;
 using namespace std;
@@ -147,8 +149,8 @@ private:
         vector<string> params; // parsed values
         vector<string> tmp1(4); // support
         boost::split(tmp1, _data, boost::is_any_of(REQUEST_DELIMITER)); // take one line
-        cout<<tmp1[0]<<endl;
         boost::split_regex(params, tmp1[0], boost::regex(PARAM_DELIMITER)); // split by __
+
         cout << "-------------------------------------" << std::endl;
         cout<<this_thread::get_id() << " REQUEST "<<"FROM "<<_user <<": "<< std::endl;
         cout << "-------------------------------------" << std::endl;

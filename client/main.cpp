@@ -7,6 +7,8 @@
 #include "../shared/shared_box.h"
 
 const std::string path_to_watch = "../my_sync_folder";
+const auto delay = std::chrono::milliseconds(5000);
+mutex m; // for print
 
 // Define available file changes
 enum class Request {
@@ -17,28 +19,29 @@ enum class Request {
     DELETE,
 };
 
+void print(const ostringstream&  oss){
+    unique_lock<mutex> lg(m);
+    cout<<oss.str()<<endl;
+}
+
 int main() {
 
 
     std::map<string, string> tmp = {};
     shared_box<std::map<string, string>> remote_snapshot;
-
     remote_snapshot.set(tmp);
-
     boost::asio::io_context io_context;
-
     boost::asio::ip::tcp::resolver resolver(io_context);
     auto endpoints = resolver.resolve("localhost", "5555");
-
     client client(io_context, endpoints, "ivan", "mimmo");
-
-    Node n("mingw.exe", false, "9670c3701f0b546ca63a3e6d7749e59e", 960504, 1600783199);
     Jobs<std::tuple<Request, Node>> jobs;
 
-    // Create a FileWatcher instance that will check the current folder for changes every 5 seconds
-    FileWatcher fw{path_to_watch, std::chrono::milliseconds(5000)};
-    std::thread t([&io_context, &jobs, &client]() {
-        cout << "IO_THREAD: " << this_thread::get_id() << endl;
+
+    std::thread io_thread([&io_context, &jobs, &client]() {
+        ostringstream  oss;
+        oss << "[IO_THREAD]: " << this_thread::get_id() ;
+
+        print(oss);
         io_context.run();
         Request req;
         Node n;
@@ -66,7 +69,7 @@ int main() {
                 case Request::PATCH:
                     break;
                 case Request::SNAPSHOT:
-                    
+
                     break;
 
                 default:
@@ -77,43 +80,52 @@ int main() {
         }
     });
 
+    std::thread fw_thread([&jobs]() {
+        ostringstream  oss;
+        oss << "[FW_THREAD]: " << this_thread::get_id() << endl;
+        print(oss);
+        // Create a FileWatcher instance that will check the current folder for changes every 5 seconds
 
-    // Start monitoring a folder for changes and (in case of changes)
-    // run a user provided lambda function
-    fw.start([&jobs](Node node, FileStatus status) -> void {
-        // Process only regular files, all other file types are ignored
-        //if(!std::filesystem::is_regular_file(std::filesystem::path(path_to_watch)) && status != FileStatus::erased) {
-        //   return;
-        //}
-        std::cout << "------------- [FILE WATCHER]------------" << std::endl;
+        FileWatcher fw{path_to_watch, delay};
+        // Start monitoring a folder for changes and (in case of changes)
+        // run a user provided lambda function
+        fw.start([&jobs](Node node, FileStatus status) -> void {
+            ostringstream  oss;
+            // Process only regular files, all other file types are ignored
+            //if(!std::filesystem::is_regular_file(std::filesystem::path(path_to_watch)) && status != FileStatus::erased) {
+            //   return;
+            //}
+            cout << "------------- [FILE WATCHER]------------" << std::endl;
 
-        switch (status) {
-            case FileStatus::created:
-                std::cout << "CREATED: \n"
-                          << node.toString() << '\n';
-                {
-                    if (!node.is_dir()) {
-                        jobs.put(std::make_tuple(Request::PUT, node));
+            switch (status) {
+                case FileStatus::created:
+                    cout << "CREATED: \n"
+                              << node.toString() << '\n';
+                    {
+                        if (!node.is_dir()) {
+                            jobs.put(std::make_tuple(Request::PUT, node));
+                        }
+
                     }
+                    break;
+                case FileStatus::modified:
+                    std::cout << "MODIFIED: " << node.toString() << '\n';
+                    break;
+                case FileStatus::erased:
+                    std::cout << "ERASED: " << node.toString() << '\n';
+                    break;
+                default:
+                    std::cout << "Error! Unknown file status.\n";
+            }
+            std::cout << "-------------------------------------" << std::endl;
 
-                }
-
-                break;
-            case FileStatus::modified:
-                std::cout << "MODIFIED: " << node.toString() << '\n';
-                break;
-            case FileStatus::erased:
-                std::cout << "ERASED: " << node.toString() << '\n';
-                break;
-            default:
-                std::cout << "Error! Unknown file status.\n";
-        }
-        std::cout << "-------------------------------------" << std::endl;
-
+        });
 
     });
 
-    t.join();
+
+    io_thread.join();
+    fw_thread.join();
     return 0;
 }
 
