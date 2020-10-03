@@ -13,7 +13,7 @@ IF (Boost_FOUND)
     message(STATUS "Boost_VERSION: ${Boost_VERSION}")
     message("BOOST   FOUND")
     include_directories(${Boost_INCLUDE_DIR})
-    target_link_libraries(client ${Boost_LIBRARIES} ssl crypto )
+    target_link_libraries(client ${Boost_LIBRARIES} ssl crypto -lboost_regex -lboost_system -lboost_filesystem -DBOOST_NO_CXX11_SCOPED_ENUMS)
 endif()
 
 

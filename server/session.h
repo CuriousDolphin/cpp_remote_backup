@@ -118,7 +118,7 @@ private:
 
             string tmp = _db->get(path);
             cout<<tmp<<endl;
-            success_response_sync();
+            success_response_sync("");
 
             read_user_snapshot();
 
@@ -137,8 +137,8 @@ private:
             return false;
         }
     }
-    void success_response_sync(){
-        write_str_sync("OK"+REQUEST_DELIMITER);
+    void success_response_sync(std::string param){
+        write_str_sync("OK"+PARAM_DELIMITER+param+REQUEST_DELIMITER);
     }
 
     void error_response_sync(){
@@ -180,7 +180,7 @@ private:
                 bool res = login(user, pwd);
                 if (res) {
                     cout << "RESPONSE: OK" << std::endl;
-                    success_response_sync();
+                    success_response_sync("");
                   //  write_str_sync("OK\n");
                     cout << "-------------------------------------" << std::endl;
                     read_request();
@@ -227,6 +227,16 @@ private:
                 break;
             case 4: // PATCH
             {
+                read_request();
+            }
+            case 5: // SNAPSHOT
+            {
+                std::map<string,string> tmp=_db->get_user_snapshot(_user);
+                ostringstream oss;
+                oss<<tmp.size();
+                success_response_sync(oss.str());
+
+
                 read_request();
             }
                 break;

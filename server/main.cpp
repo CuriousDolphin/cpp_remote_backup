@@ -40,15 +40,6 @@ int main()
         db.set_user_pwd("ivan","mimmo");
 
 
-        std::map<string,string> tmp=db.get_user_snapshot("ivan");
-        cout<<'['<<endl;
-        for(auto& val:tmp){
-            cout<<val.first<<":"<<val.second<<endl;
-        }
-        cout<<']'<<endl;
-
-
-
         //! or client.commit(); for asynchronous call
         boost::asio::io_context io_context;
         server s(io_context, 5555,&db);

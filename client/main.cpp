@@ -5,13 +5,17 @@
 #include "../shared/job.h"
 #include "../shared/duration_logger.h"
 #include "../shared/shared_box.h"
+#include <boost/algorithm/string_regex.hpp>
+#include <boost/regex.hpp>
+#include <boost/filesystem.hpp>
 
 const std::string path_to_watch = "../my_sync_folder";
-const auto delay = std::chrono::milliseconds(5000);
+const auto fw_delay = std::chrono::milliseconds(5000);
+const auto snapshot_delay = std::chrono::seconds(120);
 mutex m; // for print
 
 // Define available file changes
-enum class Request {
+enum class Method {
     SNAPSHOT,
     GET,
     PUT,
@@ -19,9 +23,9 @@ enum class Request {
     DELETE,
 };
 
-void print(const ostringstream&  oss){
+void print(const ostringstream &oss) {
     unique_lock<mutex> lg(m);
-    cout<<oss.str()<<endl;
+    cout << oss.str() << endl;
 }
 
 int main() {
@@ -34,27 +38,27 @@ int main() {
     boost::asio::ip::tcp::resolver resolver(io_context);
     auto endpoints = resolver.resolve("localhost", "5555");
     client client(io_context, endpoints, "ivan", "mimmo");
-    Jobs<std::tuple<Request, Node>> jobs;
+    Jobs<std::tuple<Method, Node>> jobs;
 
 
     std::thread io_thread([&io_context, &jobs, &client]() {
-        ostringstream  oss;
-        oss << "[IO_THREAD]: " << this_thread::get_id() ;
+        ostringstream oss;
+        oss << "[IO_THREAD]: " << this_thread::get_id();
 
         print(oss);
         io_context.run();
-        Request req;
+        Method req;
         Node n;
         while (true) {
             // get username
-            optional<tuple<Request, Node>> action = jobs.get();
+            optional<tuple<Method, Node>> action = jobs.get();
             if (!action.has_value()) {
                 break;
             }
             req = get<0>(action.value());
             n = get<1>(action.value());
             switch (req) {
-                case Request::PUT: {
+                case Method::PUT: {
                     DurationLogger dl("put file");
                     bool ris = client.do_put_sync(n); // send file ( first header, next content)
 
@@ -64,11 +68,32 @@ int main() {
                     }
                 }
                     break;
-                case Request::GET:
+                case Method::GET:
                     break;
-                case Request::PATCH:
+                case Method::PATCH:
                     break;
-                case Request::SNAPSHOT:
+                case Method::SNAPSHOT: {
+                    DurationLogger dl("snapshot");
+                    client.do_get_snapshot_sync();
+                    std::string res=client.read_sync();
+
+                    // handle response
+                    vector<string> params; // parsed values
+                    vector<string> tmp; // support
+                    boost::split(tmp, res, boost::is_any_of(REQUEST_DELIMITER)); // take one line
+                    boost::split_regex(params, tmp[0], boost::regex(PARAM_DELIMITER)); // split by __
+                    ostringstream oss;
+                    oss<<"[RES]:"<<endl;
+                    for (int i = 0; i < params.size(); i++) {
+                        oss <<i<< "\t" << params[i] << std::endl;
+                    }
+                    cout<<oss.str();
+                    if(params.at(0)=="OK" && !params.at(1).empty()){
+                        int n= stoi(params.at(1));
+                        cout<<" NUMERO FILE STORATI IN CLOUDDE: "<<n<<endl;
+                    }
+                }
+
 
                     break;
 
@@ -81,16 +106,16 @@ int main() {
     });
 
     std::thread fw_thread([&jobs]() {
-        ostringstream  oss;
+        ostringstream oss;
         oss << "[FW_THREAD]: " << this_thread::get_id() << endl;
         print(oss);
         // Create a FileWatcher instance that will check the current folder for changes every 5 seconds
 
-        FileWatcher fw{path_to_watch, delay};
+        FileWatcher fw{path_to_watch, fw_delay};
         // Start monitoring a folder for changes and (in case of changes)
         // run a user provided lambda function
         fw.start([&jobs](Node node, FileStatus status) -> void {
-            ostringstream  oss;
+            ostringstream oss;
             // Process only regular files, all other file types are ignored
             //if(!std::filesystem::is_regular_file(std::filesystem::path(path_to_watch)) && status != FileStatus::erased) {
             //   return;
@@ -100,7 +125,7 @@ int main() {
             switch (status) {
                 case FileStatus::created:
                     cout << "CREATED: \n"
-                              << node.toString() << '\n';
+                         << node.toString() << '\n';
                     {
                         if (!node.is_dir()) {
                             jobs.put(std::make_tuple(Request::PUT, node));
@@ -122,6 +147,13 @@ int main() {
         });
 
     });
+
+
+    while (true) {
+        Node n;
+        jobs.put(std::make_tuple(Request::SNAPSHOT, n));
+        this_thread::sleep_for(snapshot_delay);
+    }
 
 
     io_thread.join();

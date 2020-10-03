@@ -41,9 +41,9 @@ public:
         return _data.data();
     }
 
+
     bool do_put_sync(Node n) {
         string str = "PUT"+PARAM_DELIMITER + n.toPathSizeTimeHash()+REQUEST_DELIMITER;
-
         _file.open(n.getPath(), ios::out | ios::app | ios::binary);
         if (_file.fail()) {
             cout << "failed to open file" << endl;
@@ -55,29 +55,29 @@ public:
         int size = n.getSize();
         int n_to_send;
         while (size > 0) {
-
             if (size > LEN_BUFF)
                 n_to_send = LEN_BUFF;
             else
                 n_to_send = size;
             _file.read(_data.data(), n_to_send);
-
             int r = socket_.write_some(boost::asio::buffer(_data, n_to_send));
            // cout <<this_thread::get_id()<< "SEND [" << n_to_send << "]" << "REC [" << r << "]"  << endl;
-
             size -= r;
-
         }
         _file.close();
         return true;
-
-
     }
 
     void handle_response(){
         vector<string> tmp1(4); // support
         boost::split(tmp1, _data, boost::is_any_of(REQUEST_DELIMITER));
         cout<<"RESPONSE: "<<tmp1[0]<<endl;
+    }
+
+    void do_get_snapshot_sync(){
+        string str = "SNAPSHOT"+REQUEST_DELIMITER;
+        size_t ris = socket_.write_some(boost::asio::buffer(str, str.length()));
+
     }
 
 
