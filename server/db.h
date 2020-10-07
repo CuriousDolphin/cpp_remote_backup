@@ -74,7 +74,7 @@ public:
         redis_client.sync_commit();
         future.wait();
         cpp_redis::reply reply = future.get();
-        std::map<std::string, std::string>  tmp;
+        std::map<std::string, std::string>  tmp = {};
         if (reply.is_error() || reply.is_null()) {
             std::cout << "error get user snapshot " << user << std::endl;
             return tmp;
@@ -82,8 +82,10 @@ public:
             if (reply.is_array()) {
                 const auto& array = reply.as_array();
                 // chiavi e valori sono ritornati come un vettore [k1,v1,k2,v2...] cosi  lo trasformo in una mappa per comodita
-                for(int i=0;i<array.size()-1;i+=2){
-                    tmp[array[i].as_string()]=array[i+1].as_string();
+                if(array.size()>0){
+                    for(int i=0;i<array.size()-1;i+=2){
+                        tmp[array[i].as_string()]=array[i+1].as_string();
+                    }
                 }
             }
         }

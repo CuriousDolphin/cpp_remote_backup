@@ -128,7 +128,7 @@ int main() {
                          << node.toString() << '\n';
                     {
                         if (!node.is_dir()) {
-                            jobs.put(std::make_tuple(Request::PUT, node));
+                            jobs.put(std::make_tuple(Method::PUT, node));
                         }
 
                     }
@@ -151,7 +151,7 @@ int main() {
 
     while (true) {
         Node n;
-        jobs.put(std::make_tuple(Request::SNAPSHOT, n));
+        jobs.put(std::make_tuple(Method::SNAPSHOT, n));
         this_thread::sleep_for(snapshot_delay);
     }
 

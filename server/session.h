@@ -231,10 +231,14 @@ private:
             }
             case 5: // SNAPSHOT
             {
-                std::map<string,string> tmp=_db->get_user_snapshot(_user);
-                ostringstream oss;
-                oss<<tmp.size();
-                success_response_sync(oss.str());
+                try {
+                    std::map<string, string> tmp = _db->get_user_snapshot(_user);
+                    ostringstream oss;
+                    oss << tmp.size();
+                    success_response_sync(oss.str());
+                }catch(exception e){
+
+                }
 
 
                 read_request();
