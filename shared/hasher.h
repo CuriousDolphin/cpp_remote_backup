@@ -1,5 +1,6 @@
 #pragma once
-
+#ifndef HASHER_H
+#define HASHER_H
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -64,3 +65,5 @@ std::string getMD5(const std::string &fp)
 
     return md5ToString(digest);
 }
+
+#endif
