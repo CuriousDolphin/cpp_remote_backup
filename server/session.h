@@ -107,7 +107,7 @@ private:
             std::cout<<std::this_thread::get_id()<<" SAVED FILE at ~"<<effectivePath<<std::endl;
             //_db->set(path,getMD5(path));
 
-            _db->save_user_file_hash(_user,relativePath,getMD5(effectivePath));
+            _db->save_user_file_hash(_user,relativePath,Hasher::getMD5(effectivePath));
 
             /*   snapshot:ivan={
              *                  ../datadir/ivan/file1.txt:45cbf8aef38c570733b4594f345e710c

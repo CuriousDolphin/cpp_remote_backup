@@ -11,7 +11,7 @@
 
 const std::string path_to_watch = "../my_sync_folder";
 const auto fw_delay = std::chrono::milliseconds(5000);
-const auto snapshot_delay = std::chrono::seconds(10);
+const auto snapshot_delay = std::chrono::seconds(20);
 mutex m; // for print
 
 // Define available file changes
