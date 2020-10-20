@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 
-add_executable(server main.cpp server.h session.h db.h ../shared/const.h)
+add_executable(server main.cpp server.h session.h db.h ../shared/const.h server.cpp session.cpp db.cpp)
 
 find_package(Boost )
 IF (Boost_FOUND)
