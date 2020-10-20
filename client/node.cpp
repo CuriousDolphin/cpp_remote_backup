@@ -79,3 +79,11 @@ long int Node::getLastWriteTime()
 {
     return last_write_time;
 }
+
+std::string Node::getAbsolutePath() {
+    if (path.rfind("../", 0) == 0) {
+        // s starts with prefix
+        return path.substr(2, path.length());
+    }
+    return path;
+}

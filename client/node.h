@@ -29,6 +29,7 @@ public:
     bool is_dir() { return isDir; }
     std::string toString();
     std::string getPath() { return path; }
+    std::string getAbsolutePath() ;
     std::string getName();
     std::string toPathSizeTimeHash();
     std::string getHistory();

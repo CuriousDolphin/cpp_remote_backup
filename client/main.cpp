@@ -158,7 +158,22 @@ int main() {
                          << node.toString() << '\n';
                     {
                         if (!node.is_dir()) {
+
+                            auto _remote_snapshot =remote_snapshot.get();
+                            auto path = node.getAbsolutePath();
+                            cout<<"ABSOLUTE PATH: "<<path<<endl;
+
+                            if(_remote_snapshot.find(path) != _remote_snapshot.end()){
+                                auto remote_hash = _remote_snapshot.at(path).getPath();
+                                cout<<" FILE PRESENT IN REMOTE SNAPSHOT WITH HASH: "<<remote_hash<<endl;
+
+
+                            }
+
                             jobs.put(std::make_tuple(Method::PUT, node));
+
+
+
                         }
 
                     }
