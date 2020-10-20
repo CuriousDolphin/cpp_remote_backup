@@ -100,7 +100,8 @@ void Session::success_response_sync(std::string param){
 }
 
 void Session::success_response_sync(std::string param1,std::string param2){
-    write_str_sync("OK"+PARAM_DELIMITER+param1+PARAM_DELIMITER+param2+REQUEST_DELIMITER);
+    int n=write_str_sync("OK"+PARAM_DELIMITER+param1+PARAM_DELIMITER+param2+REQUEST_DELIMITER);
+    cout<<"[success response]: ("<<n<<") \n\t"<<"OK"+PARAM_DELIMITER+param1+PARAM_DELIMITER+param2+REQUEST_DELIMITER<<endl;
 }
 
 void Session::error_response_sync(){
@@ -205,7 +206,7 @@ void Session::handle_request() {
                     line+=it->first;
                     line+=PARAM_DELIMITER;
                     line+=it->second;
-                    // line+=PARAM_DELIMITER;
+                    line+=PARAM_DELIMITER;
                     line+=REQUEST_DELIMITER;
                     tot_len+=line.length();
                     lines_to_send.push_back(line);
@@ -213,15 +214,15 @@ void Session::handle_request() {
                 }
                 success_response_sync(to_string(files.size()),to_string(tot_len)); // send HEADER: num_files dim_payload
 
+                std::ostringstream oss;
                 for(auto& line:lines_to_send){ // send payload list of pats and hash
-
                     if(line.length()>1){
                         cout<<line;
-                        write_str_sync(line);
+                        oss<<line;
                     }
-
-
                 }
+                int n=write_str_sync(oss.str());
+                cout<<"\t[SENT] ("<<n <<") "<<endl;
             }catch(exception e){
                 // TODO HANDLE THIS
             }
@@ -278,8 +279,9 @@ void Session::write_str(std::string str) {
                              });
 }
 
-void Session::write_str_sync(std::string str) {
-    _socket.write_some(boost::asio::buffer(str, str.size()));
+int Session::write_str_sync(std::string str) {
+    int byte_sent=_socket.write_some(boost::asio::buffer(str, str.size()));
+    return byte_sent;
 }
 
 

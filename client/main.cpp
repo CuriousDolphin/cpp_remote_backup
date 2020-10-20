@@ -144,7 +144,7 @@ int main() {
         FileWatcher fw{path_to_watch, fw_delay};
         // Start monitoring a folder for changes and (in case of changes)
         // run a user provided lambda function
-        fw.start([&jobs](Node node, FileStatus status) -> void {
+        fw.start([&jobs,&remote_snapshot](Node node, FileStatus status) -> void {
             ostringstream oss;
             // Process only regular files, all other file types are ignored
             //if(!std::filesystem::is_regular_file(std::filesystem::path(path_to_watch)) && status != FileStatus::erased) {
