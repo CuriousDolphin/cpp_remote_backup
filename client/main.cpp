@@ -75,22 +75,53 @@ int main() {
                 case Method::SNAPSHOT: {
                     DurationLogger dl("snapshot");
                     client.do_get_snapshot_sync();
-                    std::string res=client.read_sync();
+                    std::string res=client.read_sync(); // read response containing number of elements of snapshot
 
-                    // handle response
+                    // handle response HEADER N_FILES AND DIM PAYLOAD
                     vector<string> params; // parsed values
                     vector<string> tmp; // support
                     boost::split(tmp, res, boost::is_any_of(REQUEST_DELIMITER)); // take one line
                     boost::split_regex(params, tmp[0], boost::regex(PARAM_DELIMITER)); // split by __
                     ostringstream oss;
-                    oss<<"[RES]:"<<endl;
+                    /*oss<<"[RES]:"<<endl;
                     for (int i = 0; i < params.size(); i++) {
                         oss <<i<< "\t" << params[i] << std::endl;
-                    }
+                    }*/
                     cout<<oss.str();
-                    if(params.at(0)=="OK" && !params.at(1).empty()){
-                        int n= stoi(params.at(1));
-                        cout<<" NUMERO FILE STORATI IN CLOUDDE: "<<n<<endl;
+                    if(params.at(0)=="OK" && !params.at(1).empty() && !params.at(2).empty()){
+                        int n_files= stoi(params.at(1));
+                        int snapshot_size =  stoi(params.at(2));
+                        cout<<" NUMERO FILE REMOTE SNAPSHOT: "<<n_files<<"\n dim payload: "<<snapshot_size<<endl;
+                        std::map<string, Node> my_map;
+                        std::string path;
+                        std::string hash;
+                        vector<string> lines; // support
+
+                        if(snapshot_size<LEN_BUFF){
+                            std::string tmp=client.read_sync();
+
+                            vector<string> lines; // support
+                            boost::split_regex(lines, tmp, boost::regex(REQUEST_DELIMITER)); // split lines
+                            vector<string> arguments(2);
+                            for(auto&line:lines){ // for each line split filepath and hash
+                                if(!line.empty()){
+
+                                    boost::split_regex(arguments, line, boost::regex(PARAM_DELIMITER));
+                                    path=arguments[0];
+                                    hash=arguments[1];
+                                    std::cout<<"\t["<<path<<"]"<<endl;
+                                    std::cout<<"\t\thash:"<<hash<<endl;
+                                }
+
+
+
+
+
+                            }
+                        }
+
+
+
                     }
                 }
 

@@ -79,19 +79,19 @@ private:
                                                   << " CODE " << ec.value() << std::endl;
                                 });
     }
-    void read_and_save_file(std::string const & path, int len) {
+    void read_and_save_file(std::string const & effectivePath,std::string const & relativePath, int len) {
         auto self(shared_from_this());
        // std::cout<<std::this_thread::get_id()<<" READ FILE LEN:"<<len<<std::endl;
 
         if(len > 0)
         {
             _socket.async_read_some(boost::asio::buffer(_data, len),
-                                    [this, self,len,path](std::error_code ec, std::size_t length) {
+                                    [this, self,len,effectivePath,relativePath](std::error_code ec, std::size_t length) {
                                         if (!ec) {
                                             //std::cout<<std::this_thread::get_id()<<" READ :"<<_data.data()<<std::endl;
 
                                             _outfile.write(_data.data(),length);
-                                            read_and_save_file(path,len-length);
+                                            read_and_save_file(effectivePath,relativePath,len-length);
 
                                         } else
                                             std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
@@ -104,10 +104,10 @@ private:
              cout<<"FAILED CREATING FILE"<<endl;
                 read_request();
              }
-            std::cout<<std::this_thread::get_id()<<" SAVED FILE at ~"<<path<<std::endl;
+            std::cout<<std::this_thread::get_id()<<" SAVED FILE at ~"<<effectivePath<<std::endl;
             //_db->set(path,getMD5(path));
 
-            _db->save_user_file_hash(_user,path,getMD5(path));
+            _db->save_user_file_hash(_user,relativePath,getMD5(effectivePath));
 
             /*   snapshot:ivan={
              *                  ../datadir/ivan/file1.txt:45cbf8aef38c570733b4594f345e710c
@@ -116,7 +116,7 @@ private:
              *
              * */
 
-            string tmp = _db->get(path);
+            string tmp = _db->get(effectivePath);
             cout<<tmp<<endl;
             success_response_sync("");
 
@@ -139,6 +139,9 @@ private:
     }
     void success_response_sync(std::string param){
         write_str_sync("OK"+PARAM_DELIMITER+param+REQUEST_DELIMITER);
+    }
+    void success_response_sync(std::string param1,std::string param2){
+        write_str_sync("OK"+PARAM_DELIMITER+param1+PARAM_DELIMITER+param2+REQUEST_DELIMITER);
     }
 
     void error_response_sync(){
@@ -218,7 +221,7 @@ private:
                  if(_outfile.fail()){
                      cout<<"FILE OPEN ERROR"<<endl;
                  }
-                read_and_save_file(full_path,len);
+                read_and_save_file(full_path,path,len);
                // read_request();
 
 
@@ -232,12 +235,36 @@ private:
             case 5: // SNAPSHOT
             {
                 try {
-                    std::map<string, string> tmp = _db->get_user_snapshot(_user);
-                    ostringstream oss;
-                    oss << tmp.size();
-                    success_response_sync(oss.str());
-                }catch(exception e){
+                    std::map<string, string> files = _db->get_user_snapshot(_user);
 
+                    std::vector<std::string> lines_to_send;
+                    auto it = files.begin();
+                    int tot_len =0;
+                    std::string line ;
+                    while(it!= files.end()){
+                        line="";
+                        line+=it->first;
+                        line+=PARAM_DELIMITER;
+                        line+=it->second;
+                       // line+=PARAM_DELIMITER;
+                        line+=REQUEST_DELIMITER;
+                        tot_len+=line.length();
+                        lines_to_send.push_back(line);
+                        it++;
+                    }
+                    success_response_sync(to_string(files.size()),to_string(tot_len)); // send HEADER: num_files dim_payload
+
+                    for(auto& line:lines_to_send){ // send payload list of pats and hash
+
+                        if(line.length()>1){
+                            cout<<line;
+                            write_str_sync(line);
+                        }
+
+
+                    }
+                }catch(exception e){
+                    // TODO HANDLE THIS
                 }
 
 

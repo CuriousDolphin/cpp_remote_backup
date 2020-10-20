@@ -41,6 +41,21 @@ public:
         return _data.data();
     }
 
+    std::string read_sync_until_delimiter(){
+        boost::asio::streambuf buff;
+        auto size=boost::asio::read_until(socket_,buff,REQUEST_DELIMITER);
+        boost::asio::streambuf::const_buffers_type bufs = buff.data();
+        std::string str(boost::asio::buffers_begin(bufs),
+                        boost::asio::buffers_begin(bufs) + size);
+        cout<<"PD:"<<size<<str<<endl;
+        return str;
+    }
+
+    std::string read_sync_n(int len){
+        socket_.read_some(boost::asio::buffer(_data.data(), len));
+        return _data.data();
+    }
+
 
     bool do_put_sync(Node n) {
         string str = "PUT"+PARAM_DELIMITER + n.toPathSizeTimeHash()+REQUEST_DELIMITER;
