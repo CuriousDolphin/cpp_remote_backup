@@ -11,7 +11,7 @@
 
 const std::string path_to_watch = "../my_sync_folder";
 const auto fw_delay = std::chrono::milliseconds(5000);
-const auto snapshot_delay = std::chrono::seconds(120);
+const auto snapshot_delay = std::chrono::seconds(10);
 mutex m; // for print
 
 // Define available file changes
@@ -29,11 +29,7 @@ void print(const ostringstream &oss) {
 }
 
 int main() {
-
-
-    std::map<string, string> tmp = {};
-    shared_box<std::map<string, string>> remote_snapshot;
-    remote_snapshot.set(tmp);
+    shared_box<std::unordered_map<string, Node>> remote_snapshot;
     boost::asio::io_context io_context;
     boost::asio::ip::tcp::resolver resolver(io_context);
     auto endpoints = resolver.resolve("localhost", "5555");
@@ -41,7 +37,7 @@ int main() {
     Jobs<std::tuple<Method, Node>> jobs;
 
 
-    std::thread io_thread([&io_context, &jobs, &client]() {
+    std::thread io_thread([&io_context, &jobs, &client,&remote_snapshot]() {
         ostringstream oss;
         oss << "[IO_THREAD]: " << this_thread::get_id();
 
@@ -64,7 +60,7 @@ int main() {
 
                     if (ris) {
                         client.read_sync(); // read response
-                        client.handle_response(); // handle response TODO
+                        client.handle_response(); // handle response
                     }
                 }
                     break;
@@ -75,49 +71,52 @@ int main() {
                 case Method::SNAPSHOT: {
                     DurationLogger dl("snapshot");
                     client.do_get_snapshot_sync();
-                    std::string res=client.read_sync(); // read response containing number of elements of snapshot
+                    std::string res=client.read_sync_n(30); // read response HEADER containing number of elements of snapshot
 
                     // handle response HEADER N_FILES AND DIM PAYLOAD
                     vector<string> params; // parsed values
                     vector<string> tmp; // support
+                    params.clear();
+                    tmp.clear();
                     boost::split(tmp, res, boost::is_any_of(REQUEST_DELIMITER)); // take one line
                     boost::split_regex(params, tmp[0], boost::regex(PARAM_DELIMITER)); // split by __
                     ostringstream oss;
-                    /*oss<<"[RES]:"<<endl;
+                    oss<<"[params]:"<<endl;
                     for (int i = 0; i < params.size(); i++) {
-                        oss <<i<< "\t" << params[i] << std::endl;
-                    }*/
+                        oss <<"\t"<<i<< "\t" << params[i] << std::endl;
+                    }
                     cout<<oss.str();
                     if(params.at(0)=="OK" && !params.at(1).empty() && !params.at(2).empty()){
                         int n_files= stoi(params.at(1));
                         int snapshot_size =  stoi(params.at(2));
-                        cout<<" NUMERO FILE REMOTE SNAPSHOT: "<<n_files<<"\n dim payload: "<<snapshot_size<<endl;
+                        cout<<" Number remote files: "<<n_files<<"\n dim payload: "<<snapshot_size<<endl;
                         std::map<string, Node> my_map;
                         std::string path;
                         std::string hash;
                         vector<string> lines; // support
 
                         if(snapshot_size<LEN_BUFF){
-                            std::string tmp=client.read_sync();
+                            std::string tmp2=client.read_sync_n(snapshot_size);
 
-                            vector<string> lines; // support
-                            boost::split_regex(lines, tmp, boost::regex(REQUEST_DELIMITER)); // split lines
+                           // cout<<"[payload]:\n"<<tmp2<<"\n[end payload]"<<endl;
+
+
+                            boost::split_regex(lines, tmp2, boost::regex(REQUEST_DELIMITER)); // split lines
                             vector<string> arguments(2);
+                            std::unordered_map<std::string, Node> remote_paths;
                             for(auto&line:lines){ // for each line split filepath and hash
                                 if(!line.empty()){
-
+                                    //cout<<"[" <<line<<"]"<<endl;
                                     boost::split_regex(arguments, line, boost::regex(PARAM_DELIMITER));
                                     path=arguments[0];
                                     hash=arguments[1];
-                                    std::cout<<"\t["<<path<<"]"<<endl;
-                                    std::cout<<"\t\thash:"<<hash<<endl;
+                                    std::cout<<"\t\tpath: "<<path<<endl;
+                                    std::cout<<"\t\thash: "<<hash<<endl;
+                                    Node nod(path,false,hash);
+                                    remote_paths.insert({path, nod});
                                 }
-
-
-
-
-
                             }
+                            remote_snapshot.set(remote_paths);
                         }
 
 
@@ -136,7 +135,7 @@ int main() {
         }
     });
 
-    std::thread fw_thread([&jobs]() {
+    std::thread fw_thread([&jobs,&remote_snapshot]() {
         ostringstream oss;
         oss << "[FW_THREAD]: " << this_thread::get_id() << endl;
         print(oss);

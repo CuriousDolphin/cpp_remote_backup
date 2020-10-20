@@ -28,7 +28,10 @@ public:
             hash_histories.push_back(value);
         }
     } */
-
+    Node(std::string path, bool isDir, std::string hash) : path(path), isDir(isDir)
+    {
+        hash_histories.push_back(hash);
+    }
     Node(std::string path, bool isDir, std::string hash, uintmax_t size, long int last_time) : path(path), isDir(isDir), size(size), last_write_time(last_time)
     {
         hash_histories.push_back(hash);

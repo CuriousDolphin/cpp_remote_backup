@@ -37,22 +37,21 @@ public:
     }
 
     std::string read_sync(){
+        _data.fill(0);
         socket_.read_some(boost::asio::buffer(_data.data(), LEN_BUFF));
         return _data.data();
     }
 
-    std::string read_sync_until_delimiter(){
-        boost::asio::streambuf buff;
-        auto size=boost::asio::read_until(socket_,buff,REQUEST_DELIMITER);
-        boost::asio::streambuf::const_buffers_type bufs = buff.data();
-        std::string str(boost::asio::buffers_begin(bufs),
-                        boost::asio::buffers_begin(bufs) + size);
-        cout<<"PD:"<<size<<str<<endl;
-        return str;
-    }
+
 
     std::string read_sync_n(int len){
-        socket_.read_some(boost::asio::buffer(_data.data(), len));
+        boost::system::error_code ec;
+        int n =socket_.read_some(boost::asio::buffer(_data.data(), len),ec);
+        cout<<"~READED B: "<<n<<"\n~ERROR CODE: "<<ec.message() <<endl;
+        if(n<=0 ){
+            return "";
+        }
+
         return _data.data();
     }
 

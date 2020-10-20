@@ -25,7 +25,7 @@ class shared_box
 
 public:
     // setta un oggetto
-    void set(T &obj)
+    void set(T obj)
     {
         unique_lock<mutex> lg(m);
         _obj = obj;
