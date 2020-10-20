@@ -50,7 +50,7 @@ public:
     ~Session();
 
 private:
-    void read_request();
+    void read_request(); //async
     void read_and_save_file(std::string const & effectivePath,std::string const & relativePath, int len);
 
     // TODO ADD HASHING
@@ -64,7 +64,7 @@ private:
     void read_user_snapshot();
     void do_write(std::size_t length);
     void write_str(std::string str);
-    void write_str_sync(std::string str);
+    int write_str_sync(std::string str);
 
     tcp::socket _socket;
     std::ofstream _outfile;
