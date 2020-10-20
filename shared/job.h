@@ -1,6 +1,7 @@
 //
 // Created by isnob on 15/06/2020.
 //
+#pragma once
 #include <iostream>
 
 #include <mutex>

@@ -1,4 +1,6 @@
 #pragma once
+#ifndef NODE_H
+#define NODE_H
 #include <filesystem>
 #include <chrono>
 #include <thread>
@@ -107,4 +109,20 @@ public:
     {
         return last_write_time;
     }
+    Node(std::string path, bool isDir, std::string hash, uintmax_t size, long int last_time);
+    uintmax_t getSize(){ return size; }
+    void setSize(uintmax_t s){ size = s; }
+    bool is_dir(){ return isDir; }
+    std::string toString();
+    std::string getPath(){ return path; }
+    std::string getName();
+    std::string toPathSizeTimeHash();
+    std::string getHistory();
+    std::string getFirstHash();
+    std::string getLastHash();
+    void setLastHash(std::string hash);
+    void setLastWriteTime(long int time);
+    long int getLastWriteTime();
 };
+
+#endif

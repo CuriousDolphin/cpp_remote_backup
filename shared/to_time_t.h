@@ -1,3 +1,4 @@
+#pragma once
 template <typename TP>
 int to_timestamp(TP tp)
 {
