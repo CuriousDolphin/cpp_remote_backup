@@ -10,12 +10,13 @@
 using boost::asio::ip::tcp;
 using namespace std;
 const std::map<std::string, int> commands = {{"LOGIN", 1},
-                                             {"GET",   2},
-                                             {"PUT",   3},
+                                             {"GET", 2},
+                                             {"PUT", 3},
                                              {"PATCH", 4}};
 //const int LEN_BUFF = 1024;
 
-class client {
+class client
+{
 public:
     client(boost::asio::io_context &io_context,
            const tcp::resolver::results_type &endpoints, const string name, const string pwd);
@@ -29,14 +30,13 @@ public:
     void do_get_snapshot_sync();
 
 private:
-    array<char,LEN_BUFF> _data   ;
+    array<char, LEN_BUFF> _data;
     boost::asio::io_context &io_context_;
     tcp::socket socket_;
     ifstream _file;
-
     void read_response();
     void login(const string name, const string pwd);
-    void connect(const tcp::resolver::results_type &endpoints, const string name, const string pwd);
+    void connect(const tcp::resolver::results_type &endpoints, const string name, const string pwd); // called in costructor
 };
 
 #endif

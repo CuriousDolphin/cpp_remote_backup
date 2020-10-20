@@ -10,3 +10,4 @@ client/my_sync_folder
 server/data
 server/data/*
 server/data/
+client/.vscode/settings.json

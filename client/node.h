@@ -21,13 +21,14 @@ class Node
     long int last_write_time;
 
 public:
-    Node() {}
+    Node(){};
+    Node(std::string path, bool isDir, std::string hash);
     Node(std::string path, bool isDir, std::string hash, uintmax_t size, long int last_time);
-    uintmax_t getSize(){ return size; }
-    void setSize(uintmax_t s){ size = s; }
-    bool is_dir(){ return isDir; }
+    uintmax_t getSize() { return size; }
+    void setSize(uintmax_t s) { size = s; }
+    bool is_dir() { return isDir; }
     std::string toString();
-    std::string getPath(){ return path; }
+    std::string getPath() { return path; }
     std::string getName();
     std::string toPathSizeTimeHash();
     std::string getHistory();
