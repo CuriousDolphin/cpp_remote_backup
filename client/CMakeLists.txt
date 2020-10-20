@@ -9,11 +9,6 @@ add_executable(client
         main.cpp
         file_watcher.h
         node.h
-        ../shared/hasher.h
-        ../shared/to_time_t.h
-        ../shared/duration_logger.h
-        ../shared/job.h
-        ../shared/const.h
         client.h
         node.cpp
         file_watcher.cpp

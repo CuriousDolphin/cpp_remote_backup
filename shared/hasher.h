@@ -38,32 +38,37 @@ std::uint32_t crc32(const std::string &fp)
 
 // Print the MD5 sum as hex-digits.
 
-std::string md5ToString(unsigned char *md)
-{
-    std::ostringstream buffer;
-    for (unsigned i = 0; i < MD5_DIGEST_LENGTH; i++)
+class Hasher{
+public:
+     static std::string md5ToString(unsigned char *md)
     {
-        buffer << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(md[i]);
-    }
-    return buffer.str();
-}
-
-std::string getMD5(const std::string &fp)
-{
-    MD5_CTX ctx;
-    MD5_Init(&ctx);
-    std::ifstream ifs(fp, std::ios::binary);
-
-    char file_buffer[4096];
-    while (ifs.read(file_buffer, sizeof(file_buffer)) || ifs.gcount())
-    {
-        MD5_Update(&ctx, file_buffer, ifs.gcount());
+        std::ostringstream buffer;
+        for (unsigned i = 0; i < MD5_DIGEST_LENGTH; i++)
+        {
+            buffer << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(md[i]);
+        }
+        return buffer.str();
     }
 
-    unsigned char digest[MD5_DIGEST_LENGTH] = {};
-    MD5_Final(digest, &ctx);
+    static std::string getMD5(const std::string &fp)
+    {
+        MD5_CTX ctx;
+        MD5_Init(&ctx);
+        std::ifstream ifs(fp, std::ios::binary);
 
-    return md5ToString(digest);
-}
+        char file_buffer[4096];
+        while (ifs.read(file_buffer, sizeof(file_buffer)) || ifs.gcount())
+        {
+            MD5_Update(&ctx, file_buffer, ifs.gcount());
+        }
+
+        unsigned char digest[MD5_DIGEST_LENGTH] = {};
+        MD5_Final(digest, &ctx);
+
+        return md5ToString(digest);
+    }
+
+
+};
 
 #endif
