@@ -11,7 +11,7 @@
 
 const std::string path_to_watch = "../my_sync_folder";
 const auto fw_delay = std::chrono::milliseconds(5000);
-const auto snapshot_delay = std::chrono::seconds(20);
+const auto snapshot_delay = std::chrono::seconds(60);
 mutex m; // for print
 
 // Define available file changes
@@ -141,7 +141,7 @@ int main() {
         print(oss);
         // Create a FileWatcher instance that will check the current folder for changes every 5 seconds
 
-        FileWatcher fw{path_to_watch, fw_delay};
+        FileWatcher fw{&remote_snapshot,path_to_watch, fw_delay};
         // Start monitoring a folder for changes and (in case of changes)
         // run a user provided lambda function
         fw.start([&jobs,&remote_snapshot](Node node, FileStatus status) -> void {
@@ -183,6 +183,9 @@ int main() {
                     break;
                 case FileStatus::erased:
                     std::cout << "ERASED: " << node.toString() << '\n';
+                    break;
+                case FileStatus::unexist:
+                   // std::cout << "UNEXIST: " << node.toString() << '\n';
                     break;
                 default:
                     std::cout << "Error! Unknown file status.\n";

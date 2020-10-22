@@ -16,7 +16,7 @@ Node::Node(std::string path, bool isDir, std::string hash) : path(path), isDir(i
 std::string Node::toString()
 {
     std::ostringstream buffer;
-    buffer << path << "\t\n(history): " << getHistory() << "\t\n(size): " << size << "\t\n(time): " << last_write_time;
+    buffer << path << "\t\n(history): " << getHistory(); //<< "\t\n(size): " << size << "\t\n(time): " << last_write_time;
     return buffer.str();
 }
 
