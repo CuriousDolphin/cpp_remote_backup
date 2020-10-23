@@ -5,5 +5,5 @@
 
 const std::string PARAM_DELIMITER = "##";
 const std::string REQUEST_DELIMITER = "\r\n";
-const int LEN_BUFF = 1024;
+const int LEN_BUFF = 4096;
 #endif

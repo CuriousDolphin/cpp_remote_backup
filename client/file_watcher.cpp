@@ -2,13 +2,13 @@
 #include "file_watcher.h"
 
 // Keep a record of files from the base directory and their last modification time
-FileWatcher::FileWatcher(std::string path_to_watch, std::chrono::duration<int, std::milli> delay) : path_to_watch{path_to_watch},
-                                                                                       delay{delay} {
-    std::cout << "ACTUAL TREE " << std::endl;
+FileWatcher::FileWatcher(shared_box<std::unordered_map<string, Node>> * remote_snapshot,std::string path_to_watch, std::chrono::duration<int, std::milli> delay) : path_to_watch{path_to_watch},
+                                                                                       delay{delay} ,remote_snapshot{remote_snapshot} {
+    //std::cout << "ACTUAL TREE " << std::endl;
     for (auto &file : std::filesystem::recursive_directory_iterator(path_to_watch)) {
         Node tmp = createNode(file);
-        std::cout << tmp.toString() << std::endl;
-        paths_.insert({file.path().string(), tmp});
+       // std::cout << tmp.toString() << std::endl;
+        paths_.insert({file.path().relative_path().string(), tmp});
     }
     std::cout << "----------------------------" << std::endl;
 }
@@ -20,7 +20,22 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action) {
         // Wait for "delay" milliseconds
         std::this_thread::sleep_for(delay);
 
-        auto it = paths_.begin();
+        _remote_snapshot=remote_snapshot->get();
+        // check se un file e' presente sul fs remoto ma non sul locale
+        auto it = _remote_snapshot.begin();
+        while (it != _remote_snapshot.end()) {
+            //TODO .. work only if the directory is up one level
+            if (!std::filesystem::exists(".."+it->first)) {
+                action(it->second, FileStatus::unexist); // it->first chiave
+                it = _remote_snapshot.erase(it);
+            } else {
+                it++;
+            }
+        }
+
+
+        // check se un file e; stato cancellato sul fs locale
+        it = paths_.begin();
         while (it != paths_.end()) {
             if (!std::filesystem::exists(it->first)) {
                 action(it->second, FileStatus::erased); // it->first chiave
@@ -46,6 +61,7 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action) {
                 }
 
                     // File modification
+                    // TO DO CONTROLLO SULL'HASH
                 else {
                     if (paths_[file.path().string()].getLastWriteTime() != current_file_last_write_time) {
                         std::string old_hash = paths_[file.path().string()].getLastHash();
@@ -71,11 +87,11 @@ Node FileWatcher::createNode(const std::filesystem::directory_entry &file) {
         uintmax_t size = std::filesystem::file_size(file);
         std::string hash = Hasher::getSHA(file.path().string());
         auto time = std::filesystem::last_write_time(file);
-        Node tmp(file.path().string(), false, hash, size, to_timestamp(time));
+        Node tmp(file.path().relative_path().string(), false, hash, size, to_timestamp(time));
         return tmp;
     } else {
         auto time = std::filesystem::last_write_time(file);
-        Node tmp(file.path().string(), true, "", 0, to_timestamp(time));
+        Node tmp(file.path().relative_path().string(), true, "", 0, to_timestamp(time));
         return tmp;
     }
 }
