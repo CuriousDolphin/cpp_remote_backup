@@ -33,11 +33,12 @@
 #include <boost/filesystem.hpp>
 
 //const int LEN_BUFF = 1024;
-const std::map<std::string, int> commands = {{"LOGIN", 1},
-                                             {"GET",   2},
+const std::map<std::string, int> commands = {{"LOGIN", 1}, // "LOGIN USER PWD"
+                                             {"GET",   2}, //  "GET FILPATH"
                                              {"PUT",   3},
                                              {"PATCH", 4},
-                                             {"SNAPSHOT", 5}
+                                             {"SNAPSHOT", 5},
+                                             {"DELETE", 6}
 };
 const std::string DATA_DIR="../data/";
 using boost::asio::ip::tcp;
@@ -73,6 +74,7 @@ private:
     Db *_db;
     std::string _user;
 
+    bool delete_file(const string &effectivePath, const string &relativePath);
 };
 
 #endif

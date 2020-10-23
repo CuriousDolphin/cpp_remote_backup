@@ -104,7 +104,7 @@ void Session::success_response_sync(std::string param){
 
 void Session::success_response_sync(std::string param1,std::string param2){
     int n=write_str_sync("OK"+PARAM_DELIMITER+param1+PARAM_DELIMITER+param2+REQUEST_DELIMITER);
-    cout<<"[success response]: ("<<n<<") \n\t"<<"OK"+PARAM_DELIMITER+param1+PARAM_DELIMITER+param2+REQUEST_DELIMITER<<endl;
+    cout<<"[write header]: ("<<n<<") :"<<"OK "+param1+PARAM_DELIMITER+param2+REQUEST_DELIMITER<<endl;
 }
 
 void Session::error_response_sync(){
@@ -117,14 +117,13 @@ void Session::handle_request() {
     boost::split(tmp1, _data, boost::is_any_of(REQUEST_DELIMITER)); // take one line
     boost::split_regex(params, tmp1[0], boost::regex(PARAM_DELIMITER)); // split by __
 
-    cout << "-------------------------------------" << std::endl;
-    cout<<this_thread::get_id() << " REQUEST "<<"FROM "<<_user <<": "<< std::endl;
-    cout << "-------------------------------------" << std::endl;
+    cout << "===================[START REQ "<< _user<<"]==================" << std::endl;
+    //cout<<this_thread::get_id() << " REQUEST "<<"FROM "<<_user <<": "<< std::endl;
 
     for (int i = 0; i < params.size(); i++) {
         cout <<i<< "\t" << params[i] << std::endl;
     }
-    cout << "-------------------------------------" << std::endl;
+    cout << "======================================================" << std::endl;
     int action = -1;
     try {
         action = commands.at(params[0]);
@@ -201,6 +200,7 @@ void Session::handle_request() {
         case 4: // PATCH
         {
             read_request();
+            break;
         }
         case 5: // SNAPSHOT
         {
@@ -227,24 +227,48 @@ void Session::handle_request() {
                 std::ostringstream oss;
                 for(auto& line:lines_to_send){ // send payload list of pats and hash
                     if(line.length()>1){
-                        cout<<line;
+                        cout<<"\t\t"<<line;
                         oss<<line;
                     }
                 }
                 int n=write_str_sync(oss.str());
-                cout<<"\t[SENT] ("<<n <<") "<<endl;
+                cout<<"[SENT] ("<<n <<") "<<endl;
             }catch(exception e){
                 // TODO HANDLE THIS
             }
 
 
             read_request();
-        }
             break;
+        }
+        case 6: // DELETE
+        {
+            string path = params.at(1);
+            string full_path=DATA_DIR+_user+path;
+            bool check=delete_file(full_path,path);
+            success_response_sync(std::to_string(check));
+            read_request();
+            break;
+        }
+
+        read_request();
+        break;
+
 
     }
+    cout << "===================[END REQ "<< _user<<"]==================" << std::endl;
 
 
+}
+
+// delete file from fs and redis
+bool Session::delete_file(std::string const & effectivePath,std::string const & relativePath){
+    bool fs_deleted=false;
+    if(boost::filesystem::exists(effectivePath)){
+        fs_deleted = boost::filesystem::remove(effectivePath);
+    }
+    _db->delete_file_from_snapshot(_user,relativePath);
+     return fs_deleted;
 }
 
 // create directories if doesnt  exist

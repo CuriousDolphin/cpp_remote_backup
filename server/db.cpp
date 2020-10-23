@@ -86,7 +86,23 @@ std::map<std::string, std::string>  Db::get_user_snapshot(const std::string &use
     return tmp;
 
 }
+bool Db::delete_file_from_snapshot(const std::string &user,const std::string &path){
+    std::vector<std::string> v;
+    v.push_back(path);
+    std::future<cpp_redis::reply> future = redis_client.hdel("snapshot:"+user, v);
+    redis_client.sync_commit();
+    future.wait();
+    cpp_redis::reply reply = future.get();
+    if (reply.is_error() || reply.is_null()) {
+        std::cout << "error get user snapshot file " << user <<" "<<path<< std::endl;
+        return false;
+    }
+    std::cout<<"[redis]"<<" DELETE FILE "<<path<<" RES:"<<reply.as_integer()<<std::endl;
+    if(reply.is_integer() && reply.as_integer()!=0)
+        return true;
+    return false;
 
+}
 void Db::connect() {
     redis_client.connect("127.0.0.1", port,
                          [](const std::string &host, std::size_t port, cpp_redis::connect_state status) {
