@@ -15,10 +15,10 @@ void Db::set(const std::string &key, const std::string &value) {
 
 }
 
-void Db::save_user_file_hash(const std::string user,const std::string path,const std::string md5){
-    redis_client.hset("snapshot:"+user,path, md5);
+void Db::save_user_file_hash(const std::string user,const std::string path,const std::string sha){
+    redis_client.hset("snapshot:"+user,path, sha);
     redis_client.sync_commit();
-    std::cout<<"[redis]"<<" stored  "<<"snapshot:"+user<<std::endl<<path<<":"<<md5<<std::endl;
+    std::cout<<"[redis]"<<" stored  "<<"snapshot:"+user<<std::endl<<path<<":"<<sha<<std::endl;
 }
 
 void Db::set_user_pwd(const std::string user,const std::string pwd){

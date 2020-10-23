@@ -7,10 +7,10 @@
 #include <string>
 #include <algorithm>
 #include <iterator>
-#include <boost/uuid/detail/md5.hpp>
+
 #include <boost/algorithm/hex.hpp>
 #include <boost/crc.hpp>
-#include <openssl/md5.h>
+#include <openssl/sha.h>
 //using boost::uuids::detail::md5;
 
 /* std::size_t fileSize(std::ifstream &file)
@@ -40,33 +40,38 @@ std::uint32_t crc32(const std::string &fp)
 
 class Hasher{
 public:
-     static std::string md5ToString(unsigned char *md)
-    {
-        std::ostringstream buffer;
-        for (unsigned i = 0; i < MD5_DIGEST_LENGTH; i++)
-        {
-            buffer << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(md[i]);
-        }
-        return buffer.str();
-    }
+     static std::string shaToString(unsigned char *sha)
+     {
+         std::ostringstream buffer;
+         for (unsigned i = 0; i < SHA256_DIGEST_LENGTH; i++)
+         {
+             buffer << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(sha[i]);
+         }
+         return buffer.str();
+     }
 
-    static std::string getMD5(const std::string &fp)
+    static std::string getSHA(const std::string &fp)
     {
-        MD5_CTX ctx;
-        MD5_Init(&ctx);
+        SHA256_CTX ctx;
+        SHA256_Init(&ctx);
         std::ifstream ifs(fp, std::ios::binary);
 
         char file_buffer[4096];
         while (ifs.read(file_buffer, sizeof(file_buffer)) || ifs.gcount())
         {
-            MD5_Update(&ctx, file_buffer, ifs.gcount());
+            SHA256_Update(&ctx, file_buffer, ifs.gcount());
         }
 
-        unsigned char digest[MD5_DIGEST_LENGTH] = {};
-        MD5_Final(digest, &ctx);
+        unsigned char digest[SHA256_DIGEST_LENGTH] = {};
+        SHA256_Final(digest, &ctx);
 
-        return md5ToString(digest);
+        return shaToString(digest);
     }
+
+
+
+
+
 
 
 };

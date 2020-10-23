@@ -13,7 +13,7 @@ public:
     void set(const std::string &key, const std::string &value);
 
 
-    void save_user_file_hash(const std::string user,const std::string path,const std::string md5);
+    void save_user_file_hash(const std::string user,const std::string path,const std::string sha);
     void set_user_pwd(const std::string user,const std::string pwd);
     std::string get_user_pwd(const std::string &user);
     std::string get(const std::string &key);

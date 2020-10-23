@@ -65,7 +65,7 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action) {
                 else {
                     if (paths_[file.path().string()].getLastWriteTime() != current_file_last_write_time) {
                         std::string old_hash = paths_[file.path().string()].getLastHash();
-                        std::string new_hash = Hasher::getMD5(file.path().string());
+                        std::string new_hash = Hasher::getSHA(file.path().string());
 
                         if (old_hash != new_hash) { // se cambia l'hash la modifica e' veritiera
                             uintmax_t size = std::filesystem::file_size(file);
@@ -85,7 +85,7 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action) {
 Node FileWatcher::createNode(const std::filesystem::directory_entry &file) {
     if (!std::filesystem::is_directory(file)) {
         uintmax_t size = std::filesystem::file_size(file);
-        std::string hash = Hasher::getMD5(file.path().string());
+        std::string hash = Hasher::getSHA(file.path().string());
         auto time = std::filesystem::last_write_time(file);
         Node tmp(file.path().relative_path().string(), false, hash, size, to_timestamp(time));
         return tmp;
