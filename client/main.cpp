@@ -58,7 +58,7 @@ int main() {
             std::string res;
             switch (req) {
                 case Method::PUT: {
-                    DurationLogger dl("put file");
+                    DurationLogger dl("Method::PUT");
                     string str="";
                     str += "PUT" + PARAM_DELIMITER + n.toPathSizeTimeHash() + REQUEST_DELIMITER;
                     client.do_write_str_sync(str);
@@ -88,15 +88,24 @@ int main() {
 
 
 
+                }
+                    break;
+                case Method::DELETE:
+                {
+                    DurationLogger dl("Method::DELETE "+n.getAbsolutePath());
+                    string str="";
+                    str += "DELETE" + PARAM_DELIMITER + n.getAbsolutePath() + REQUEST_DELIMITER;
+                    client.do_write_str_sync(str);
 
                 }
+
                     break;
                 case Method::GET:
                     break;
                 case Method::PATCH:
                     break;
                 case Method::SNAPSHOT: {
-                    DurationLogger dl("snapshot");
+                    DurationLogger dl("Method::SNAPSHOT");
                     client.do_get_snapshot_sync();
                     res="";
                     res=client.read_sync_n(30); // read response HEADER containing number of elements of snapshot
@@ -210,9 +219,15 @@ int main() {
                     break;
                 case FileStatus::erased:
                     std::cout << "ERASED: " << node.toString() << '\n';
+                    jobs.put(std::make_tuple(Method::DELETE, node));
+                    jobs.put(std::make_tuple(Method::SNAPSHOT, node));
                     break;
-                case FileStatus::unexist:
-                   // std::cout << "UNEXIST: " << node.toString() << '\n';
+                case FileStatus::unexist: // TRY TO DELETE FROM SERVER TODO REMOVE ASAP
+                    std::cout << "UNEXIST: " << node.toString() << '\n';
+                    jobs.put(std::make_tuple(Method::DELETE, node));
+
+                    jobs.put(std::make_tuple(Method::SNAPSHOT, node));
+
                     break;
                 default:
                     std::cout << "Error! Unknown file status.\n";
@@ -223,7 +238,7 @@ int main() {
 
     });
 
-
+    // reload snapshot every snapshot_delay
     while (true) {
 
         Node n;

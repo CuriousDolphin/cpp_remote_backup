@@ -239,11 +239,30 @@ void Session::handle_request() {
 
 
             read_request();
-        }
             break;
+        }
+        case 6: // DELETE
+        {
+            string path = params.at(1);
+            string full_path=DATA_DIR+_user+path;
+            delete_file(full_path,path);
+            read_request();
+        }
+
+        read_request();
+        break;
 
     }
 
+
+}
+
+// delete file from fs and redis
+void Session::delete_file(std::string const & effectivePath,std::string const & relativePath){
+    if(boost::filesystem::exists(effectivePath)){
+        boost::filesystem::remove(effectivePath);
+    }
+     _db->delete_file_from_snapshot(_user,relativePath);
 
 }
 

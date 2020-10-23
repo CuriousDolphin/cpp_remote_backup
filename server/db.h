@@ -21,10 +21,13 @@ public:
     // { path: hash }
     std::map<std::string, std::string>  get_user_snapshot(const std::string &user);
 
+    bool delete_file_from_snapshot(const std::string &user, const std::string &path);
+
 private:
     void connect();
     int port;
     cpp_redis::client redis_client;
+
 };
 
 #endif
