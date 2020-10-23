@@ -7,7 +7,7 @@ FileWatcher::FileWatcher(shared_box<std::unordered_map<string, Node>> * remote_s
     //std::cout << "ACTUAL TREE " << std::endl;
     for (auto &file : std::filesystem::recursive_directory_iterator(path_to_watch)) {
         Node tmp = createNode(file);
-        std::cout << tmp.toString() << std::endl;
+       // std::cout << tmp.toString() << std::endl;
         paths_.insert({file.path().relative_path().string(), tmp});
     }
     std::cout << "----------------------------" << std::endl;
@@ -58,15 +58,14 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action) {
                     action(tmp, FileStatus::created);
                 }
 
-                // FILE NON ESISTENTE SUL REPO REMOTO
-                if(!remote_snapshot_contains(file.path().string()) && local_snapshot_contains(file.path().string()) ){
-                    Node tmp = createNode(file);
-                    // paths_[file.path().string()] = current_file_last_write_time;
-                    action(tmp, FileStatus::untracked);
-                }
-
-
                 else {
+
+                    // FILE NON ESISTENTE SUL REPO REMOTO
+                    if(!remote_snapshot_contains(file.path().string()) ){
+                        Node tmp = createNode(file);
+                        // paths_[file.path().string()] = current_file_last_write_time;
+                        action(tmp, FileStatus::untracked);
+                    }
 
                     // File modification
                     // TODO CONTROLLO SULL'HASH
@@ -82,6 +81,8 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action) {
                             action(paths_[file.path().string()], FileStatus::modified);
                         }
                     }
+
+
                 }
             }
 
