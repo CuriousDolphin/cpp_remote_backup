@@ -64,7 +64,7 @@ void Session::read_and_save_file(std::string const & effectivePath,std::string c
         std::cout<<std::this_thread::get_id()<<" SAVED FILE at ~"<<effectivePath<<std::endl;
         //_db->set(path,getMD5(path));
 
-        _db->save_user_file_hash(_user,relativePath,Hasher::getMD5(effectivePath));
+        _db->save_user_file_hash(_user,relativePath,Hasher::getSHA(effectivePath));
 
         /*   snapshot:ivan={
          *                  ../datadir/ivan/file1.txt:45cbf8aef38c570733b4594f345e710c
@@ -176,6 +176,7 @@ void Session::handle_request() {
 
             int len = std::stoi(params.at(2));
             int time = std::stoi(params.at(3));
+            //TODO manage hash at params 4
 
             _outfile.open(full_path);
             if(_outfile.fail()){
