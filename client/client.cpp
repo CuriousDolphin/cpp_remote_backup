@@ -31,8 +31,9 @@ void client::do_write_str(std::string str)
 std::string client::read_sync_n(int len)
 {
     boost::system::error_code ec;
+    _data.fill(0);
     int n = socket_.read_some(boost::asio::buffer(_data.data(), len), ec);
-    cout << "~READED B: " << n << "\n~ERROR CODE: " << ec.message() << endl;
+    cout << "~ [READED B]: " << n << " [EC]: " << ec.message() << endl;
     if (n <= 0)
     {
         return "";
@@ -47,29 +48,16 @@ std::string client::read_sync()
     return _data.data();
 }
 
-std::string client::read_sync_until_delimiter()
-{
-    boost::asio::streambuf buff;
-    auto size = boost::asio::read_until(socket_, buff, REQUEST_DELIMITER);
-    boost::asio::streambuf::const_buffers_type bufs = buff.data();
-    std::string str(boost::asio::buffers_begin(bufs),
-                    boost::asio::buffers_begin(bufs) + size);
-    cout << "PD:" << size << str << endl;
-    return str;
-}
 
 bool client::do_put_sync(Node n)
 {
-    string str = "PUT" + PARAM_DELIMITER + n.toPathSizeTimeHash() + REQUEST_DELIMITER;
     _file.open(n.getPath(), ios::out | ios::app | ios::binary);
     if (_file.fail())
     {
         cout << "failed to open file" << endl;
         return false;
     }
-    size_t ris = socket_.write_some(boost::asio::buffer(str, str.length()));
     _file.seekg(0, _file.beg);
-
     int size = n.getSize();
     int n_to_send;
     while (size > 0)
@@ -92,6 +80,12 @@ void client::handle_response()
     vector<string> tmp1(4); // support
     boost::split(tmp1, _data, boost::is_any_of(REQUEST_DELIMITER));
     cout << "RESPONSE: " << tmp1[0] << endl;
+}
+
+size_t client::do_write_str_sync(std::string str) {
+
+    size_t ris = socket_.write_some(boost::asio::buffer(str, str.length()));
+    return ris;
 }
 
 void client::do_get_snapshot_sync()

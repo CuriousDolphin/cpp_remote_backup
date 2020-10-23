@@ -94,7 +94,10 @@ bool Session::login(const string &user, const string &pwd) {
         return false;
     }
 }
-
+void Session::success_response_sync(){
+    write_str_sync("OK"+REQUEST_DELIMITER);
+    cout<<"WRITED: OK"<<endl;
+}
 void Session::success_response_sync(std::string param){
     write_str_sync("OK"+PARAM_DELIMITER+param+REQUEST_DELIMITER);
 }
@@ -164,7 +167,7 @@ void Session::handle_request() {
             break;
         case 3: // PUT
         {
-            if (params.size() < 3) {
+            if (params.size() < 4) {
                 write_str_sync("Wrong number arguments...Bye!");
                 return;
             }
@@ -176,11 +179,18 @@ void Session::handle_request() {
 
             int len = std::stoi(params.at(2));
             int time = std::stoi(params.at(3));
+            string hash = params.at(4);
+            // TODO MANAGE HASH AND CHECK IF FILE SAVED HAS SAME HASH
+            // TODO check here if in db and fs exist this file
+            // TODO handle bad response
+            success_response_sync();
 
             _outfile.open(full_path);
             if(_outfile.fail()){
                 cout<<"FILE OPEN ERROR"<<endl;
             }
+
+
             read_and_save_file(full_path,path,len);
             // read_request();
 

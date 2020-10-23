@@ -11,7 +11,7 @@
 
 const std::string path_to_watch = "../my_sync_folder";
 const auto fw_delay = std::chrono::milliseconds(5000);
-const auto snapshot_delay = std::chrono::seconds(60);
+const auto snapshot_delay = std::chrono::seconds(200);
 mutex m; // for print
 
 // Define available file changes
@@ -53,15 +53,42 @@ int main() {
             }
             req = get<0>(action.value());
             n = get<1>(action.value());
+            vector<string> params; // parsed header params
+            vector<string> tmp; // support
+            std::string res;
             switch (req) {
                 case Method::PUT: {
                     DurationLogger dl("put file");
-                    bool ris = client.do_put_sync(n); // send file ( first header, next content)
+                    string str="";
+                    str += "PUT" + PARAM_DELIMITER + n.toPathSizeTimeHash() + REQUEST_DELIMITER;
+                    client.do_write_str_sync(str);
+                    res="";
+                    res=client.read_sync_n(30); // read response HEADER containing ok or error
 
-                    if (ris) {
-                        client.read_sync(); // read response
-                        client.handle_response(); // handle response
+                    cout<<"Response to put request: "+res+"_____";
+                    params.clear();
+                    tmp.clear();
+                    boost::split(tmp, res, boost::is_any_of(REQUEST_DELIMITER)); // take one line
+                    boost::split_regex(params, tmp[0], boost::regex(PARAM_DELIMITER)); // split by __
+                    ostringstream oss;
+                    oss<<"[params]:"<<endl;
+                    for (int i = 0; i < params.size(); i++) {
+                        oss <<"\t"<<i<< "\t" << params[i] << std::endl;
                     }
+                    cout<<oss.str();
+
+                    if(params.at(0)=="OK"){ // se l'header di risposta e' ok mando il file
+                        bool ris = client.do_put_sync(n); // send file ( first header, next content)
+
+                        if (ris) {
+                            client.read_sync(); // read response
+                            client.handle_response(); // handle response
+                        }
+                    }
+
+
+
+
                 }
                     break;
                 case Method::GET:
@@ -71,11 +98,11 @@ int main() {
                 case Method::SNAPSHOT: {
                     DurationLogger dl("snapshot");
                     client.do_get_snapshot_sync();
-                    std::string res=client.read_sync_n(30); // read response HEADER containing number of elements of snapshot
+                    res="";
+                    res=client.read_sync_n(30); // read response HEADER containing number of elements of snapshot
 
                     // handle response HEADER N_FILES AND DIM PAYLOAD
-                    vector<string> params; // parsed values
-                    vector<string> tmp; // support
+
                     params.clear();
                     tmp.clear();
                     boost::split(tmp, res, boost::is_any_of(REQUEST_DELIMITER)); // take one line
@@ -94,7 +121,7 @@ int main() {
                         std::string path;
                         std::string hash;
                         vector<string> lines; // support
-
+                        // TODO MANAGE SNAPSHOT LEN > BUFFER
                         if(snapshot_size<LEN_BUFF){
                             std::string tmp2=client.read_sync_n(snapshot_size);
 
@@ -198,9 +225,11 @@ int main() {
 
 
     while (true) {
+
         Node n;
         jobs.put(std::make_tuple(Method::SNAPSHOT, n));
         this_thread::sleep_for(snapshot_delay);
+
     }
 
 

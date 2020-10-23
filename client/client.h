@@ -23,11 +23,11 @@ public:
     tcp::socket &socket();
     void do_write_str(std::string str);
     std::string read_sync();
-    std::string read_sync_until_delimiter();
     std::string read_sync_n(int len);
     bool do_put_sync(Node n);
     void handle_response();
     void do_get_snapshot_sync();
+    size_t do_write_str_sync(string str);
 
 private:
     array<char, LEN_BUFF> _data;
@@ -37,6 +37,7 @@ private:
     void read_response();
     void login(const string name, const string pwd);
     void connect(const tcp::resolver::results_type &endpoints, const string name, const string pwd); // called in costructor
+
 };
 
 #endif
