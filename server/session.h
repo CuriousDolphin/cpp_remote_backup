@@ -74,7 +74,7 @@ private:
     Db *_db;
     std::string _user;
 
-    void delete_file(const string &effectivePath, const string &relativePath);
+    bool delete_file(const string &effectivePath, const string &relativePath);
 };
 
 #endif

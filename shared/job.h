@@ -18,7 +18,7 @@
 #endif
 
 using namespace std;
-int MAX_QUEUE_LEN = 20;
+int MAX_QUEUE_LEN = 50;
 template <class T>
 class Jobs
 {

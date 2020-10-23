@@ -15,10 +15,11 @@
 
 // Define available file changes
 enum class FileStatus {
-    created,
-    modified,
-    erased,
-    unexist,
+    created,   // file created on local fs
+    modified,  // file modified on local fs
+    erased,    // file deleted from local fs
+    missing,   // remote file not exist on local fs
+    untracked, // local file not exist on remote fs
 };
 
 class FileWatcher {
@@ -46,7 +47,11 @@ private:
 
     // Check if "paths_" contains a given key
     // If your compiler supports C++20 use paths_.contains(key) instead of this function
-    bool contains(const std::string &key);
+    //bool contains(const std::string &key);
+
+    bool local_snapshot_contains(const string &key);
+
+    bool remote_snapshot_contains(const string &key);
 };
 
 #endif

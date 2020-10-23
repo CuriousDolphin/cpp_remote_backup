@@ -11,7 +11,7 @@
 
 const std::string path_to_watch = "../my_sync_folder";
 const auto fw_delay = std::chrono::milliseconds(5000);
-const auto snapshot_delay = std::chrono::seconds(20);
+const auto snapshot_delay = std::chrono::seconds(60);
 mutex m; // for print
 
 // Define available file changes
@@ -58,14 +58,14 @@ int main() {
             std::string res;
             switch (req) {
                 case Method::PUT: {
-                    DurationLogger dl("Method::PUT " + PARAM_DELIMITER + n.toPathSizeTimeHash() );
+                    DurationLogger dl("Method::PUT " + PARAM_DELIMITER + n.getPath() );
                     string str="";
                     str += "PUT" + PARAM_DELIMITER + n.toPathSizeTimeHash() + REQUEST_DELIMITER;
                     client.do_write_str_sync(str);
                     res="";
                     res=client.read_sync_n(30); // read response HEADER containing ok or error
 
-                    cout<<"Response to put request: "+res+"_____";
+                    cout<<"HEADER RECEIVED: "+res;
                     params.clear();
                     tmp.clear();
                     boost::split(tmp, res, boost::is_any_of(REQUEST_DELIMITER)); // take one line
@@ -96,6 +96,8 @@ int main() {
                     string str="";
                     str += "DELETE" + PARAM_DELIMITER + n.getAbsolutePath() + REQUEST_DELIMITER;
                     client.do_write_str_sync(str);
+                    client.read_sync(); // read response
+                    client.handle_response(); // handle response
 
                 }
 
@@ -146,8 +148,7 @@ int main() {
                                     boost::split_regex(arguments, line, boost::regex(PARAM_DELIMITER));
                                     path=arguments[0];
                                     hash=arguments[1];
-                                    std::cout<<"\t\tpath: "<<path<<endl;
-                                    std::cout<<"\t\thash: "<<hash<<endl;
+                                    cout<<"\t\t "<<path<<" @ "<<hash<<endl;
                                     Node nod(path,false,hash);
                                     remote_paths.insert({path, nod});
                                 }
@@ -207,7 +208,7 @@ int main() {
                             }
 
                             jobs.put(std::make_tuple(Method::PUT, node));
-                           // jobs.put(std::make_tuple(Method::SNAPSHOT, node));
+                            jobs.put(std::make_tuple(Method::SNAPSHOT, node));
 
 
 
@@ -221,13 +222,18 @@ int main() {
                 case FileStatus::erased:
                     std::cout << "ERASED: " << node.toString() << '\n';
                     jobs.put(std::make_tuple(Method::DELETE, node));
-                 //   jobs.put(std::make_tuple(Method::SNAPSHOT, node));
+                    jobs.put(std::make_tuple(Method::SNAPSHOT, node));
                     break;
-                case FileStatus::unexist: // TRY TO DELETE FROM SERVER TODO REMOVE ASAP
-                    std::cout << "UNEXIST: " << node.toString() << '\n';
-                   // jobs.put(std::make_tuple(Method::DELETE, node));
-//
-
+                case FileStatus::missing:
+                    std::cout << "MISSING: " << node.toString() << '\n';
+                    jobs.put(std::make_tuple(Method::DELETE, node));
+                    jobs.put(std::make_tuple(Method::SNAPSHOT, node));
+                    break;
+                case FileStatus::untracked:
+                    std::cout << "UNTRACKED: " << node.toString() << '\n';
+                    jobs.put(std::make_tuple(Method::PUT, node));
+                    jobs.put(std::make_tuple(Method::SNAPSHOT, node));
+                    // jobs.put(std::make_tuple(Method::DELETE, node));
                     break;
                 default:
                     std::cout << "Error! Unknown file status.\n";

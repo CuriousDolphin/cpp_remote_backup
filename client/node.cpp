@@ -36,9 +36,7 @@ std::string Node::toPathSizeTimeHash()
 {
     std::ostringstream buffer;
     //buffer << path << " " << size << " " << last_write_time;
-    string tmp = path;
-    buffer << tmp.erase(0, 2) << PARAM_DELIMITER << size << PARAM_DELIMITER << last_write_time << PARAM_DELIMITER << getLastHash() << endl;
-    //buffer << getName() << PARAM_DELIMITER << size << PARAM_DELIMITER << last_write_time<< PARAM_DELIMITER<<getLastHash()<<endl;
+    buffer << getAbsolutePath() << PARAM_DELIMITER << size << PARAM_DELIMITER << last_write_time << PARAM_DELIMITER << getLastHash() << endl;
     return buffer.str();
 }
 
