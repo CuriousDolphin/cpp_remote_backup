@@ -10,6 +10,7 @@
 #include <future>
 #include <fstream>
 #include <queue>
+#include <deque>
 #include <optional>
 #include <condition_variable>
 #ifndef LAB5_JOB_H
@@ -25,7 +26,7 @@ class Jobs
     mutex m;
     condition_variable cv; // conditional get
 
-    queue<T> coda;
+    deque<T> coda;
     std::atomic<bool> completed = false;
 
 public:
@@ -34,7 +35,7 @@ public:
     void put(T &&job)
     {
         unique_lock<mutex> lg(m);
-        coda.push(move(job));
+        coda.push_back(move(job));
         cv.notify_all(); // notifica i consumers
     };
 
@@ -49,10 +50,14 @@ public:
             return nullopt;
         }
         T data = move(coda.front());
-        coda.pop();
+        coda.pop_front();
         return move(data);
     };
-
+    bool has(T &&obj){
+        if(find(coda.begin(),coda.end(),obj) != coda.end())
+            return true;
+        return false;
+    }
     bool is_completed()
     {
         return completed.load();
