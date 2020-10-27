@@ -6,6 +6,7 @@
 #include <fstream>
 #include "../shared/const.h"
 #include "node.h"
+#include "request.h"
 
 using boost::asio::ip::tcp;
 using namespace std;
@@ -28,6 +29,7 @@ public:
     void handle_response();
     void do_get_snapshot_sync();
     size_t do_write_str_sync(string str);
+    void handle_request(Request req);
 
 private:
     array<char, LEN_BUFF> _data;
@@ -37,6 +39,7 @@ private:
     void read_response();
     void login(const string name, const string pwd);
     void connect(const tcp::resolver::results_type &endpoints, const string name, const string pwd); // called in costructor
+
 
 };
 

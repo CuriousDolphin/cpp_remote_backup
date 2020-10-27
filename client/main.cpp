@@ -2,9 +2,11 @@
 #include "file_watcher.h"
 #include <boost/asio.hpp>
 #include "client.h"
+#include "request.h"
 #include "../shared/job.h"
 #include "../shared/duration_logger.h"
 #include "../shared/shared_box.h"
+#include "../shared/const.h"
 #include <boost/algorithm/string_regex.hpp>
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
@@ -14,14 +16,7 @@ const auto fw_delay = std::chrono::milliseconds(5000);
 const auto snapshot_delay = std::chrono::seconds(60);
 mutex m; // for print
 
-// Define available file changes
-enum class Method {
-    SNAPSHOT,
-    GET,
-    PUT,
-    PATCH,
-    DELETE,
-};
+
 
 void print(const ostringstream &oss) {
     unique_lock<mutex> lg(m);
@@ -34,7 +29,7 @@ int main() {
     boost::asio::ip::tcp::resolver resolver(io_context);
     auto endpoints = resolver.resolve("localhost", "5555");
     client client(io_context, endpoints, "ivan", "mimmo");
-    Jobs<std::tuple<Method, Node>> jobs;
+    Jobs<Request> jobs;
 
 
     std::thread io_thread([&io_context, &jobs, &client,&remote_snapshot]() {
@@ -47,16 +42,16 @@ int main() {
         Node n;
         while (true) {
             // get username
-            optional<tuple<Method, Node>> action = jobs.get();
+            optional<Request> action = jobs.get();
             if (!action.has_value()) {
                 break;
             }
-            req = get<0>(action.value());
-            n = get<1>(action.value());
+            n=action->node;
+
             vector<string> params; // parsed header params
             vector<string> tmp; // support
             std::string res;
-            switch (req) {
+            switch (action.value().method) {
                 case Method::PUT: {
                     DurationLogger dl("Method::PUT " + PARAM_DELIMITER + n.getPath() );
                     string str="";
@@ -78,7 +73,7 @@ int main() {
                     cout<<oss.str();
 
                     if(params.at(0)=="OK"){ // se l'header di risposta e' ok mando il file
-                        bool ris = client.do_put_sync(n); // send file ( first header, next content)
+                        bool ris = client.do_put_sync(n); // send file
 
                         if (ris) {
                             client.read_sync(); // read response
@@ -207,8 +202,13 @@ int main() {
 
                             }
 
-                            jobs.put(std::make_tuple(Method::PUT, node));
-                            jobs.put(std::make_tuple(Method::SNAPSHOT, node));
+                            /*jobs.has(std::make_tuple(Method::PUT, node))){
+
+                            }*/
+                            jobs.put(
+                                    Request(Method::PUT,node)
+                            );
+                            jobs.put(Request(Method::SNAPSHOT, node));
 
 
 
@@ -221,19 +221,18 @@ int main() {
                     break;
                 case FileStatus::erased:
                     std::cout << "ERASED: " << node.toString() << '\n';
-                    jobs.put(std::make_tuple(Method::DELETE, node));
-                    jobs.put(std::make_tuple(Method::SNAPSHOT, node));
+                    jobs.put(Request(Method::DELETE, node));
+                    jobs.put(Request(Method::SNAPSHOT, node));
                     break;
                 case FileStatus::missing:
                     std::cout << "MISSING: " << node.toString() << '\n';
-                    jobs.put(std::make_tuple(Method::DELETE, node));
-                    jobs.put(std::make_tuple(Method::SNAPSHOT, node));
+                    jobs.put(Request(Method::DELETE, node));
+                    jobs.put(Request(Method::SNAPSHOT, node));
                     break;
                 case FileStatus::untracked:
                     std::cout << "UNTRACKED: " << node.toString() << '\n';
-                    jobs.put(std::make_tuple(Method::PUT, node));
-                    jobs.put(std::make_tuple(Method::SNAPSHOT, node));
-                    // jobs.put(std::make_tuple(Method::DELETE, node));
+                    jobs.put(Request(Method::PUT, node));
+                    jobs.put(Request(Method::SNAPSHOT, node));
                     break;
                 default:
                     std::cout << "Error! Unknown file status.\n";
@@ -248,7 +247,7 @@ int main() {
     while (true) {
 
         Node n;
-        jobs.put(std::make_tuple(Method::SNAPSHOT, n));
+        jobs.put(Request(Method::SNAPSHOT, n));
         this_thread::sleep_for(snapshot_delay);
 
     }
