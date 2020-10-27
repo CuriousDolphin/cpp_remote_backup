@@ -5,6 +5,7 @@
 #include "request.h"
 #include "../shared/job.h"
 #include "../shared/duration_logger.h"
+#include "../shared/shared_map.h"
 #include "../shared/shared_box.h"
 #include "../shared/const.h"
 #include <boost/algorithm/string_regex.hpp>
@@ -31,7 +32,7 @@ int main() {
     client client(io_context, endpoints, "ivan", "mimmo");
     Jobs<Request> jobs;
 
-
+    /*
     std::thread io_thread([&io_context, &jobs, &client,&remote_snapshot]() {
         ostringstream oss;
         oss << "[IO_THREAD]: " << this_thread::get_id();
@@ -165,18 +166,60 @@ int main() {
 
 
         }
+    });*/
+
+    std::thread io_thread([&io_context, &jobs, &client, &remote_snapshot]() {
+        ostringstream oss;
+        oss << "[IO_THREAD]: " << this_thread::get_id();
+
+        print(oss);
+        io_context.run();
+
+        while (true) {
+            optional<Request> req = jobs.get();
+            if (!req.has_value()) {
+                break;
+            }
+
+            vector<string> params; // parsed header params
+            vector<string> tmp; // support
+            std::string req_string;
+            switch (req->method) {
+                case Method::GET:
+                req_string="Method::GET";
+                break;
+                case Method::DELETE:
+                    req_string="Method::DELETE";
+                    break;
+                case Method::PUT:
+                    req_string="Method::PUT";
+                    break;
+                case Method::PATCH:
+                    req_string="Method::PATCH";
+                    break;
+                case Method::SNAPSHOT:
+                    req_string="Method::SNAPSHOT";
+                    break;
+
+            }
+            {
+                DurationLogger dl(req_string);
+                client.handle_request(req.value());
+
+            }
+        }
     });
 
-    std::thread fw_thread([&jobs,&remote_snapshot]() {
+    std::thread fw_thread([&jobs, &remote_snapshot]() {
         ostringstream oss;
         oss << "[FW_THREAD]: " << this_thread::get_id() << endl;
         print(oss);
         // Create a FileWatcher instance that will check the current folder for changes every 5 seconds
 
-        FileWatcher fw{&remote_snapshot,path_to_watch, fw_delay};
+        FileWatcher fw{&remote_snapshot, path_to_watch, fw_delay};
         // Start monitoring a folder for changes and (in case of changes)
         // run a user provided lambda function
-        fw.start([&jobs,&remote_snapshot](Node node, FileStatus status) -> void {
+        fw.start([&jobs, &remote_snapshot](Node node, FileStatus status) -> void {
             ostringstream oss;
             // Process only regular files, all other file types are ignored
             //if(!std::filesystem::is_regular_file(std::filesystem::path(path_to_watch)) && status != FileStatus::erased) {
@@ -191,13 +234,13 @@ int main() {
                     {
                         if (!node.is_dir()) {
 
-                            auto _remote_snapshot =remote_snapshot.get();
+                            auto _remote_snapshot = remote_snapshot.get();
                             auto path = node.getAbsolutePath();
-                            cout<<"ABSOLUTE PATH: "<<path<<endl;
+                            cout << "ABSOLUTE PATH: " << path << endl;
 
-                            if(_remote_snapshot.find(path) != _remote_snapshot.end()){
+                            if (_remote_snapshot.find(path) != _remote_snapshot.end()) {
                                 auto remote_hash = _remote_snapshot.at(path).getPath();
-                                cout<<" FILE PRESENT IN REMOTE SNAPSHOT WITH HASH: "<<remote_hash<<endl;
+                                cout << " FILE PRESENT IN REMOTE SNAPSHOT WITH HASH: " << remote_hash << endl;
 
 
                             }
@@ -206,10 +249,9 @@ int main() {
 
                             }*/
                             jobs.put(
-                                    Request(Method::PUT,node)
+                                    Request(Method::PUT, node)
                             );
                             jobs.put(Request(Method::SNAPSHOT, node));
-
 
 
                         }

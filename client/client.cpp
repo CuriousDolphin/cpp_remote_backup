@@ -78,10 +78,35 @@ bool client::do_put_sync(Node n)
     _file.close();
     return true;
 }
-void client::read_and_send_file_async(Node n,int len)
+void client::read_and_send_file_async(int len)
 {
+    if(len>0){
+        int n_to_send;
+        if (len > LEN_BUFF)
+            n_to_send = LEN_BUFF;
+        else
+            n_to_send = len;
+        _file.read(_data.data(), n_to_send);
 
 
+        int r = socket_.write_some(boost::asio::buffer(_data, n_to_send));
+
+        boost::asio::async_write(socket_,boost::asio::buffer(_data, n_to_send),
+                                 [this,len](std::error_code ec, std::size_t n) {
+                                     if (!ec) {
+                                         read_and_send_file_async(len-n);
+
+                                     } else
+                                         std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
+                                                   << " CODE " << ec.value() << std::endl;
+
+
+                                 });
+    }else{
+        _file.close();
+        read_sync(); // read response
+        handle_response();
+    }
 
 
 
@@ -222,11 +247,10 @@ void client::handle_request(Request req) {
                     break;
                 }
                 _file.seekg(0, _file.beg);
-                read_and_send_file_async(n,n.getSize()); // send file
+                read_and_send_file_async(n.getSize()); // send file
 
                 if (true) {
-                    read_sync(); // read response
-                    handle_response(); // handle response
+                    // handle response
                 }
             }
 

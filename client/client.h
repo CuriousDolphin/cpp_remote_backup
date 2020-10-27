@@ -45,8 +45,7 @@ private:
 
     void do_put_async(Node n);
 
-    void read_and_send_file_async(Node n, int len);
-
+    void read_and_send_file_async(int len);
 };
 
 #endif
