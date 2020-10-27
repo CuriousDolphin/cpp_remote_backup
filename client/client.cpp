@@ -78,6 +78,29 @@ bool client::do_put_sync(Node n)
     _file.close();
     return true;
 }
+void client::read_and_send_file_async(Node n,int len)
+{
+
+
+
+
+
+
+    /* int size = n.getSize();
+    int n_to_send;
+    while (size > 0)
+    {
+        if (size > LEN_BUFF)
+            n_to_send = LEN_BUFF;
+        else
+            n_to_send = size;
+        _file.read(_data.data(), n_to_send);
+        int r = socket_.write_some(boost::asio::buffer(_data, n_to_send));
+        // cout <<this_thread::get_id()<< "SEND [" << n_to_send << "]" << "REC [" << r << "]"  << endl;
+        size -= r;
+    }
+    _file.close(); */
+}
 
 void client::handle_response()
 {
@@ -101,8 +124,20 @@ void client::do_get_snapshot_sync()
 void client::read_response()
 {
     string tmp;
+    boost::asio::async_read_until(socket_,
+                                  boost::asio::dynamic_buffer(input_buffer_), REQUEST_DELIMITER,
+                                  [this](std::error_code ec, std::size_t n){
+                                      if (!ec)
+                                      {
+                                          std::cout << std::this_thread::get_id() << " READ_RESPONSE :" << _data.data()
+                                                    << std::endl;
+                                      }
+                                      else
+                                          std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
+                                                    << " CODE " << ec.value() << std::endl;
+    });
 
-    _data.fill(0);
+    /* _data.fill(0);
     socket_.async_read_some(boost::asio::buffer(_data, LEN_BUFF),
                             [this](std::error_code ec, std::size_t length) {
                                 if (!ec)
@@ -113,7 +148,7 @@ void client::read_response()
                                 else
                                     std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
                                               << " CODE " << ec.value() << std::endl;
-                            });
+                            });*/
 }
 
 void client::login(const string name, const string pwd)
@@ -179,9 +214,17 @@ void client::handle_request(Request req) {
             cout<<oss.str();
 
             if(params.at(0)=="OK"){ // se l'header di risposta e' ok mando il file
-                bool ris = do_put_sync(n); // send file
 
-                if (ris) {
+                _file.open(n.getPath(), ios::out | ios::app | ios::binary);
+                if (_file.fail())
+                {
+                    cout << "failed to open file" << endl;
+                    break;
+                }
+                _file.seekg(0, _file.beg);
+                read_and_send_file_async(n,n.getSize()); // send file
+
+                if (true) {
                     read_sync(); // read response
                     handle_response(); // handle response
                 }

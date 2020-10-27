@@ -33,13 +33,19 @@ public:
 
 private:
     array<char, LEN_BUFF> _data;
+
+    std::string input_buffer_;
     boost::asio::io_context &io_context_;
     tcp::socket socket_;
     ifstream _file;
     void read_response();
-    void login(const string name, const string pwd);
-    void connect(const tcp::resolver::results_type &endpoints, const string name, const string pwd); // called in costructor
+    void login(string name,  string pwd);
+    void connect(const tcp::resolver::results_type &endpoints,  string name,  string pwd); // called in costructor
 
+
+    void do_put_async(Node n);
+
+    void read_and_send_file_async(Node n, int len);
 
 };
 
