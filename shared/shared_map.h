@@ -25,10 +25,20 @@ class shared_map
     std::unordered_map<string, T> _map;
 
 public:
-    void set(string key, T value)
+    void set(string key, T &&value)
     {
-        unique_lock<mutex> lg(m);
-        _map.insert(std::make_pair(key, value));
+
+        try
+        {
+            unique_lock<mutex> lg(m);
+
+            _map.insert({key, move(value)});
+            //cout << "[SHARED MAP SET] " << key << endl;
+        }
+        catch (std::exception &e)
+        {
+            std::cerr << "Exception: " << e.what() << "\n";
+        }
     }
 
     T get(string key)
@@ -54,10 +64,18 @@ public:
     void set_map(std::unordered_map<string, T> new_map)
     {
         unique_lock<mutex> lg(m);
-        _map = new_map;
+
+        try
+        {
+            _map = new_map;
+        }
+        catch (std::exception &e)
+        {
+            std::cerr << "Exception: " << e.what() << "\n";
+        }
     };
     // get di tutta la _mappa
-    std::unordered_map<string, T> get__map()
+    std::unordered_map<string, T> get_map()
     {
         unique_lock<mutex> lg(m);
         return _map;

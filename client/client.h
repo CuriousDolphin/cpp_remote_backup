@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include "../shared/const.h"
+#include "../shared/shared_map.h"
 #include "node.h"
 #include "request.h"
 
@@ -20,7 +21,7 @@ class client
 {
 public:
     client(boost::asio::io_context &io_context,
-           const tcp::resolver::results_type &endpoints, const string name, const string pwd);
+           const tcp::resolver::results_type &endpoints, const string name, const string pwd, shared_map<Node> *remote_snapshot);
     tcp::socket &socket();
     void do_write_str(std::string str);
     std::string read_sync();
@@ -34,9 +35,11 @@ public:
 private:
     array<char, LEN_BUFF> _data;
 
-    std::string input_buffer_;
+    shared_map<Node> * _remote_snapshot;
+
+    std::string _input_buffer;
     boost::asio::io_context &io_context_;
-    tcp::socket socket_;
+    tcp::socket _socket;
     ifstream _file;
     void read_response();
     void login(string name,  string pwd);

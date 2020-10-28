@@ -3,21 +3,22 @@
 #include "request.h"
 
 client::client(boost::asio::io_context &io_context,
-               const tcp::resolver::results_type &endpoints, const string name, const string pwd)
+               const tcp::resolver::results_type &endpoints, const string name, const string pwd,shared_map<Node> *remote_snapshot)
     : io_context_(io_context),
-      socket_(io_context, tcp::endpoint(tcp::v4(), 4444))
+    _socket(io_context, tcp::endpoint(tcp::v4(), 4444)),
+    _remote_snapshot(remote_snapshot)
 {
     connect(endpoints, name, pwd);
 }
 
 tcp::socket &client::socket()
 {
-    return socket_;
+    return _socket;
 }
 
 void client::do_write_str(std::string str)
 {
-    boost::asio::async_write(socket_, boost::asio::buffer(str, str.length()),
+    boost::asio::async_write(_socket, boost::asio::buffer(str, str.length()),
                              [this, str](std::error_code ec, std::size_t length) {
                                  if (!ec)
                                  {
@@ -36,7 +37,7 @@ std::string client::read_sync_n(int len)
 {
     boost::system::error_code ec;
     _data.fill(0);
-    int n = socket_.read_some(boost::asio::buffer(_data.data(), len), ec);
+    int n = _socket.read_some(boost::asio::buffer(_data.data(), len), ec);
     cout << "~ [READED B]: " << n << " [EC]: " << ec.message() << endl;
     if (n <= 0)
     {
@@ -48,7 +49,7 @@ std::string client::read_sync_n(int len)
 
 std::string client::read_sync()
 {
-    socket_.read_some(boost::asio::buffer(_data.data(), LEN_BUFF));
+    _socket.read_some(boost::asio::buffer(_data.data(), LEN_BUFF));
     return _data.data();
 }
 
@@ -58,7 +59,7 @@ bool client::do_put_sync(Node n)
     _file.open(n.getPath(), ios::out | ios::app | ios::binary);
     if (_file.fail())
     {
-        cout << "failed to open file" << endl;
+        cout << "failed to open file: "<<n.getPath() << endl;
         return false;
     }
     _file.seekg(0, _file.beg);
@@ -71,7 +72,7 @@ bool client::do_put_sync(Node n)
         else
             n_to_send = size;
         _file.read(_data.data(), n_to_send);
-        int r = socket_.write_some(boost::asio::buffer(_data, n_to_send));
+        int r = _socket.write_some(boost::asio::buffer(_data, n_to_send));
         // cout <<this_thread::get_id()<< "SEND [" << n_to_send << "]" << "REC [" << r << "]"  << endl;
         size -= r;
     }
@@ -81,6 +82,7 @@ bool client::do_put_sync(Node n)
 void client::read_and_send_file_async(int len)
 {
     if(len>0){
+        cout<<" READING FILE"<<endl;
         int n_to_send;
         if (len > LEN_BUFF)
             n_to_send = LEN_BUFF;
@@ -89,9 +91,9 @@ void client::read_and_send_file_async(int len)
         _file.read(_data.data(), n_to_send);
 
 
-        int r = socket_.write_some(boost::asio::buffer(_data, n_to_send));
+        int r = _socket.write_some(boost::asio::buffer(_data, n_to_send));
 
-        boost::asio::async_write(socket_,boost::asio::buffer(_data, n_to_send),
+        boost::asio::async_write(_socket,boost::asio::buffer(_data, n_to_send),
                                  [this,len](std::error_code ec, std::size_t n) {
                                      if (!ec) {
                                          read_and_send_file_async(len-n);
@@ -103,6 +105,7 @@ void client::read_and_send_file_async(int len)
 
                                  });
     }else{
+        cout<<"END READING FILE"<<endl;
         _file.close();
         read_sync(); // read response
         handle_response();
@@ -136,21 +139,21 @@ void client::handle_response()
 
 size_t client::do_write_str_sync(std::string str) {
 
-    size_t ris = socket_.write_some(boost::asio::buffer(str, str.length()));
+    size_t ris = _socket.write_some(boost::asio::buffer(str, str.length()));
     return ris;
 }
 
 void client::do_get_snapshot_sync()
 {
     string str = "SNAPSHOT" + REQUEST_DELIMITER;
-    size_t ris = socket_.write_some(boost::asio::buffer(str, str.length()));
+    size_t ris = _socket.write_some(boost::asio::buffer(str, str.length()));
 }
 
 void client::read_response()
 {
     string tmp;
-    boost::asio::async_read_until(socket_,
-                                  boost::asio::dynamic_buffer(input_buffer_), REQUEST_DELIMITER,
+    boost::asio::async_read_until(_socket,
+                                  boost::asio::dynamic_buffer(_input_buffer), REQUEST_DELIMITER,
                                   [this](std::error_code ec, std::size_t n){
                                       if (!ec)
                                       {
@@ -161,19 +164,6 @@ void client::read_response()
                                           std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
                                                     << " CODE " << ec.value() << std::endl;
     });
-
-    /* _data.fill(0);
-    socket_.async_read_some(boost::asio::buffer(_data, LEN_BUFF),
-                            [this](std::error_code ec, std::size_t length) {
-                                if (!ec)
-                                {
-                                    std::cout << std::this_thread::get_id() << " READ_RESPONSE :" << _data.data()
-                                              << std::endl;
-                                }
-                                else
-                                    std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
-                                              << " CODE " << ec.value() << std::endl;
-                            });*/
 }
 
 void client::login(const string name, const string pwd)
@@ -181,7 +171,7 @@ void client::login(const string name, const string pwd)
 
     string tmp = "LOGIN" + PARAM_DELIMITER + name + PARAM_DELIMITER + pwd + REQUEST_DELIMITER;
 
-    boost::asio::async_write(socket_, boost::asio::buffer(tmp, tmp.length()),
+    boost::asio::async_write(_socket, boost::asio::buffer(tmp, tmp.length()),
                              [this, tmp](std::error_code ec, std::size_t length) {
                                  if (!ec)
                                  {
@@ -197,11 +187,11 @@ void client::login(const string name, const string pwd)
 
 void client::connect(const tcp::resolver::results_type &endpoints, const string name, const string pwd)
 {
-    boost::asio::async_connect(socket_, endpoints,
+    boost::asio::async_connect(_socket, endpoints,
                                [this, name, pwd](boost::system::error_code ec, tcp::endpoint) {
                                    if (!ec)
                                    {
-                                       std::cout << this_thread::get_id() << "CONNECTED TO SERVER" << std::endl;
+                                       std::cout << this_thread::get_id() << "[CLIENT] CONNECTED TO SERVER" << std::endl;
                                        login(name, pwd);
                                        //   do_read_header();
                                    }
@@ -240,17 +230,21 @@ void client::handle_request(Request req) {
 
             if(params.at(0)=="OK"){ // se l'header di risposta e' ok mando il file
 
-                _file.open(n.getPath(), ios::out | ios::app | ios::binary);
+                /*_file.open(n.getPath(), ios::out | ios::app | ios::binary);
                 if (_file.fail())
                 {
                     cout << "failed to open file" << endl;
                     break;
                 }
                 _file.seekg(0, _file.beg);
-                read_and_send_file_async(n.getSize()); // send file
-
-                if (true) {
+                 read_and_send_file_async(n.getSize()); // send file
+                 */
+                //
+                bool riis = do_put_sync(n);
+                if(riis) {
                     // handle response
+                    read_sync(); // read response
+                    handle_response(); // handle response
                 }
             }
 
@@ -316,11 +310,10 @@ void client::handle_request(Request req) {
                             hash=arguments[1];
                             cout<<"\t\t "<<path<<" @ "<<hash<<endl;
                             Node nod(path,false,hash);
-                            remote_paths.insert({path, nod});
+                            _remote_snapshot->set(path,move(nod));
                         }
                     }
-                    // TODO MANAGE THIS
-                   // remote_snapshot.set(remote_paths);
+
                 }
 
 

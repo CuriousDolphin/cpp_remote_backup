@@ -13,7 +13,7 @@
 #include <boost/filesystem.hpp>
 
 const std::string path_to_watch = "../my_sync_folder";
-const auto fw_delay = std::chrono::milliseconds(5000);
+const auto fw_delay = std::chrono::milliseconds(15000);
 const auto snapshot_delay = std::chrono::seconds(60);
 mutex m; // for print
 
@@ -25,11 +25,11 @@ void print(const ostringstream &oss) {
 }
 
 int main() {
-    shared_box<std::unordered_map<string, Node>> remote_snapshot;
+    shared_map<Node> remote_snapshot;
     boost::asio::io_context io_context;
     boost::asio::ip::tcp::resolver resolver(io_context);
     auto endpoints = resolver.resolve("localhost", "5555");
-    client client(io_context, endpoints, "ivan", "mimmo");
+    client client(io_context, endpoints, "ivan", "mimmo",&remote_snapshot);
     Jobs<Request> jobs;
 
     /*
@@ -180,11 +180,12 @@ int main() {
             if (!req.has_value()) {
                 break;
             }
+            cout<<"HAS VALUE"<<endl;
 
             vector<string> params; // parsed header params
             vector<string> tmp; // support
             std::string req_string;
-            switch (req->method) {
+            switch (req.value().method) {
                 case Method::GET:
                 req_string="Method::GET";
                 break;
@@ -234,7 +235,7 @@ int main() {
                     {
                         if (!node.is_dir()) {
 
-                            auto _remote_snapshot = remote_snapshot.get();
+                            auto _remote_snapshot = remote_snapshot.get_map();
                             auto path = node.getAbsolutePath();
                             cout << "ABSOLUTE PATH: " << path << endl;
 
@@ -268,8 +269,9 @@ int main() {
                     break;
                 case FileStatus::missing:
                     std::cout << "MISSING: " << node.toString() << '\n';
-                    jobs.put(Request(Method::DELETE, node));
-                    jobs.put(Request(Method::SNAPSHOT, node));
+                    // TODO ADD GET HERE
+                    // jobs.put(Request(Method::DELETE, node));
+                    // jobs.put(Request(Method::SNAPSHOT, node));
                     break;
                 case FileStatus::untracked:
                     std::cout << "UNTRACKED: " << node.toString() << '\n';

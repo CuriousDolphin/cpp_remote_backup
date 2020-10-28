@@ -34,6 +34,7 @@ public:
     // essere bloccante se la coda dei job è piena
     void put(T &&job)
     {
+        cout << "[JOB PUT]" << endl;
         unique_lock<mutex> lg(m);
         coda.push_back(move(job));
         cv.notify_all(); // notifica i consumers
@@ -51,10 +52,12 @@ public:
         }
         T data = move(coda.front());
         coda.pop_front();
+        cout << "[JOBS GET]" << endl;
         return move(data);
     };
-    bool has(T &&obj){
-        if(find(coda.begin(),coda.end(),obj) != coda.end())
+    bool has(T &&obj)
+    {
+        if (find(coda.begin(), coda.end(), obj) != coda.end())
             return true;
         return false;
     }
