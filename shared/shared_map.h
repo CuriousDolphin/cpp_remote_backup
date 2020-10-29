@@ -25,6 +25,11 @@ class shared_map
     std::unordered_map<string, T> _map;
 
 public:
+    void remove(string key)
+    {
+        _map.erase(key);
+        // cout << "[SHARED MAP ERASED] " << key << endl;
+    }
     void set(string key, T &&value)
     {
 

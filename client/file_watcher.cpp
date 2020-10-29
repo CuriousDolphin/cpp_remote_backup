@@ -15,7 +15,7 @@ FileWatcher::FileWatcher(shared_map< Node> * remote_snapshot,std::string path_to
 
 // Monitor "path_to_watch" for changes and in case of a change execute the user supplied "action" function
 void FileWatcher::start(const std::function<void(Node, FileStatus)> &action) {
-    std::cout << "START MONITORING" << std::endl;
+    std::cout << "[START MONITORING]" << std::endl;
     while (running_) {
         // Wait for "delay" milliseconds
         std::this_thread::sleep_for(delay);
