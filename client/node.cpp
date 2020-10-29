@@ -16,7 +16,7 @@ Node::Node(std::string path, bool isDir, std::string hash) : path(path), isDir(i
 std::string Node::toString()
 {
     std::ostringstream buffer;
-    buffer << path << "\t\n(history): " << getHistory(); //<< "\t\n(size): " << size << "\t\n(time): " << last_write_time;
+    buffer << getAbsolutePath() << "@" << getLastHash(); //<< "\t\n(size): " << size << "\t\n(time): " << last_write_time;
     return buffer.str();
 }
 
@@ -78,8 +78,10 @@ long int Node::getLastWriteTime()
     return last_write_time;
 }
 
-std::string Node::getAbsolutePath() {
-    if (path.rfind("../", 0) == 0) {
+std::string Node::getAbsolutePath()
+{
+    if (path.rfind("../", 0) == 0)
+    {
         // s starts with prefix
         return path.substr(2, path.length());
     }

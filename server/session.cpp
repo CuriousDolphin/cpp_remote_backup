@@ -38,14 +38,14 @@ void Session::read_request() {
 
 void Session::read_and_save_file(std::string const & effectivePath,std::string const & relativePath, int len) {
     auto self(shared_from_this());
-    // std::cout<<std::this_thread::get_id()<<" READ FILE LEN:"<<len<<std::endl;
+     //std::cout<<" [READ] FILE LEN:"<<len<<std::endl;
 
     if(len > 0)
     {
         _socket.async_read_some(boost::asio::buffer(_data, len),
                                 [this, self,len,effectivePath,relativePath](std::error_code ec, std::size_t length) {
                                     if (!ec) {
-                                        //std::cout<<std::this_thread::get_id()<<" READ :"<<_data.data()<<std::endl;
+                                        //std::cout<<std::this_thread::get_id()<<" [READED] : ("<<length<<")"<<_data.data()<<std::endl;
 
                                         _outfile.write(_data.data(),length);
                                         read_and_save_file(effectivePath,relativePath,len-length);
@@ -61,10 +61,9 @@ void Session::read_and_save_file(std::string const & effectivePath,std::string c
             cout<<"FAILED CREATING FILE"<<endl;
             read_request();
         }
-        std::cout<<std::this_thread::get_id()<<" SAVED FILE at ~"<<effectivePath<<std::endl;
-        //_db->set(path,getMD5(path));
-
-        _db->save_user_file_hash(_user,relativePath,Hasher::getSHA(effectivePath));
+        std::cout<<" [SAVED FILE] at ~"<<effectivePath<<std::endl;
+        std::string hash= Hasher::getSHA(effectivePath);
+        _db->save_user_file_hash(_user,relativePath,hash);
 
         /*   snapshot:ivan={
          *                  ../datadir/ivan/file1.txt:45cbf8aef38c570733b4594f345e710c
@@ -75,7 +74,7 @@ void Session::read_and_save_file(std::string const & effectivePath,std::string c
 
         string tmp = _db->get(effectivePath);
         cout<<tmp<<endl;
-        success_response_sync("");
+        success_response_sync(hash);
 
         read_user_snapshot();
 
@@ -172,23 +171,23 @@ void Session::handle_request() {
             }
             string path = params.at(1);
             string full_path=DATA_DIR+_user+path;
-
-
-            create_dirs(full_path); // create dirs if not exists
-
             int len = std::stoi(params.at(2));
             int time = std::stoi(params.at(3));
             string hash = params.at(4);
             // TODO MANAGE HASH AND CHECK IF FILE SAVED HAS SAME HASH
             // TODO check here if in db and fs exist this file
             // TODO handle bad response
-            success_response_sync();
+            create_dirs(full_path); // create dirs if not exists
 
             _outfile.open(full_path);
             if(_outfile.fail()){
                 cout<<"FILE OPEN ERROR"<<endl;
+                return;
+
+                error_response_sync();
             }
 
+            success_response_sync(); // send ok
 
             read_and_save_file(full_path,path,len);
             // read_request();

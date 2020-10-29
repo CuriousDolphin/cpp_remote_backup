@@ -5,8 +5,11 @@
 #include <iostream>
 #include <fstream>
 #include "../shared/const.h"
+#include "../shared/job.h"
+#include "../shared/shared_map.h"
 #include "node.h"
 #include "request.h"
+#include <boost/algorithm/string_regex.hpp>
 
 using boost::asio::ip::tcp;
 using namespace std;
@@ -20,27 +23,37 @@ class client
 {
 public:
     client(boost::asio::io_context &io_context,
-           const tcp::resolver::results_type &endpoints, const string name, const string pwd);
+           const tcp::resolver::results_type &endpoints,
+           const string name,
+           const string pwd,
+           shared_map<Node> *remote_snapshot,
+           shared_map<bool> *pending_operations
+       );
     tcp::socket &socket();
-    void do_write_str(std::string str);
-    std::string read_sync();
-    std::string read_sync_n(int len);
-    bool do_put_sync(Node n);
-    void handle_response();
-    void do_get_snapshot_sync();
-    size_t do_write_str_sync(string str);
+
+
     void handle_request(Request req);
 
 private:
     array<char, LEN_BUFF> _data;
+    shared_map<Node> *_remote_snapshot;
+    shared_map<bool> *_pending_operations;
+    std::string _input_buffer;
     boost::asio::io_context &io_context_;
-    tcp::socket socket_;
+    tcp::socket _socket;
     ifstream _file;
-    void read_response();
-    void login(const string name, const string pwd);
-    void connect(const tcp::resolver::results_type &endpoints, const string name, const string pwd); // called in costructor
 
+    std::string read_sync_n(int len);
+    size_t do_write_str_sync(string str);
+    bool send_file_chunked(Node n);
+    void read_response_login();
+    void login(string name, string pwd);
+    void connect(const tcp::resolver::results_type &endpoints, string name, string pwd); // called in costructor
+    string read_sync_until_delimiter();
+    static vector<string> extract_params(string &&str);
+    vector<string> read_header();
 
+    void handle_response(Request &&req);
 };
 
 #endif
