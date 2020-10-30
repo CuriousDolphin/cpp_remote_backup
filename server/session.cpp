@@ -86,7 +86,7 @@ void Session::read_and_save_file(std::string const & effectivePath,std::string c
 // TODO ADD HASHING
 bool Session::login(const string &user, const string &pwd) {
     string savedpwd = _db->get_user_pwd(user);
-    if (savedpwd == pwd) {
+    if (savedpwd == Hasher::pswSHA(pwd)) {
         _user = user; // !!important!!
         return true;
     } else {

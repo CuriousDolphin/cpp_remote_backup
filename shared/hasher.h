@@ -7,7 +7,6 @@
 #include <string>
 #include <algorithm>
 #include <iterator>
-
 #include <boost/algorithm/hex.hpp>
 #include <boost/crc.hpp>
 #include <openssl/sha.h>
@@ -68,11 +67,35 @@ public:
         return shaToString(digest);
     }
 
+    static std::string pswSHA(const std::string psw) {
+        std::string salt = "pdsproject201920";
+        SHA256_CTX ctx;
+        SHA256_Init(&ctx);
+        SHA256_Update(&ctx, psw.c_str(), psw.length());
+        SHA256_Update(&ctx, salt.c_str(), salt.length()); //salting psw
+        unsigned char hashedpsw[SHA256_DIGEST_LENGTH] = {};
+        SHA256_Final(hashedpsw, &ctx);
+        std::cout << "Hashed password: " << shaToString(hashedpsw) << std::endl;
+        return shaToString(hashedpsw);
+    }
+
+    static std::string gen_random(const int len) {
+
+        std::string tmp_s;
+        static const char alphanum[] =
+                "0123456789"
+                "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                "abcdefghijklmnopqrstuvwxyz";
+
+        srand( (unsigned) time(NULL) * getpid());
+
+        for (int i = 0; i < len; ++i)
+            tmp_s += alphanum[rand() % (sizeof(alphanum) - 1)];
 
 
+        return tmp_s;
 
-
-
+    }
 
 };
 
