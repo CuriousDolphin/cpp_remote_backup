@@ -37,7 +37,9 @@ int main()
         Db db(6379);
 
 
-        db.set_user_pwd("ivan","mimmo");
+        //db.set_user_pwd("ivan","mimmo");
+        db.set_user_pwd("ivan","82d13e09a23511bf7906910e238ad09c339be756ebb083c6d1d03434418e089f");
+
 
 
         //! or client.commit(); for asynchronous call

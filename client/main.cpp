@@ -7,6 +7,7 @@
 #include "../shared/duration_logger.h"
 #include "../shared/shared_box.h"
 #include "../shared/const.h"
+#include "../shared/hasher.h"
 #include <boost/algorithm/string_regex.hpp>
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
@@ -28,6 +29,7 @@ int main() {
     boost::asio::io_context io_context;
     boost::asio::ip::tcp::resolver resolver(io_context);
     auto endpoints = resolver.resolve("localhost", "5555");
+    std::string hashedpsw = Hasher::pswSHA("mimmo");
     client client(io_context, endpoints, "ivan", "mimmo");
     Jobs<Request> jobs;
 
