@@ -17,15 +17,29 @@ void print(const ostringstream &oss) {
     unique_lock<mutex> lg(m);
     cout << oss.str() << endl;
 }
-
-int main() {
+//[1] user [2] pwd [3] host [4] port
+int main(int argc, char* argv[]) {
     shared_map<Node> remote_snapshot;
     shared_map<bool> pending_operation;
     boost::asio::io_context io_context;
     boost::asio::ip::tcp::resolver resolver(io_context);
-    auto endpoints = resolver.resolve("localhost", "5555");
+
+    //localhost,5555
+    std::string user=argv[1];
+    std::string pwd=argv[2];
+    std::string host = argv[3];
+    std::string port = argv[4];
+
+    auto endpoints = resolver.resolve(host, port);
     Jobs<Request> jobs;
-    client client(io_context, endpoints, "ivan", "mimmo", &remote_snapshot, &pending_operation);
+
+    //ivan,mimmo
+    client client(io_context, endpoints, user, pwd, &remote_snapshot, &pending_operation);
+
+    /*while(!client.isConnected()){
+        client.connect(endpoints, argv[1], argv[2]);
+        std::cout<<"A"<<std::endl;
+    }*/
 
     std::thread io_thread([&io_context, &jobs, &client, &remote_snapshot]() {
         ostringstream oss;

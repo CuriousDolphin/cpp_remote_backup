@@ -11,7 +11,9 @@ client::client(boost::asio::io_context &io_context,
     : io_context_(io_context),
       _socket(io_context, tcp::endpoint(tcp::v4(), 4444)),
       _remote_snapshot(remote_snapshot),
-      _pending_operations(pending_operations)
+      _pending_operations(pending_operations),
+      user(name),
+      pwd(pwd)
 {
     connect(endpoints, name, pwd);
 }
@@ -61,10 +63,13 @@ void client::read_response_login()
                                       {
                                           std::cout << std::this_thread::get_id() << " READ_RESPONSE :" << _input_buffer.data()
                                                     << std::endl;
+                                          connected=true;
                                       }
-                                      else
+                                      else{
                                           std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
                                                     << " CODE " << ec.value() << std::endl;
+                                          connected=false;
+                                      }
                                   });
 }
 
@@ -84,6 +89,7 @@ void client::login(const string name, const string pwd)
                                  {
                                      std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
                                                << " CODE " << ec.value() << std::endl;
+                                     connected=false;
                                  }
                              });
 }
@@ -100,6 +106,7 @@ void client::connect(const tcp::resolver::results_type &endpoints, const string 
                                    else
                                    {
                                        std::cout << "FAILED CONNECTION" << ec << std::endl;
+                                       connected=false;
                                    }
                                });
 }

@@ -29,10 +29,14 @@ public:
            shared_map<Node> *remote_snapshot,
            shared_map<bool> *pending_operations
        );
+    bool connected=false;
     tcp::socket &socket();
 
 
     void handle_request(Request req);
+    void connect(const tcp::resolver::results_type &endpoints, string name, string pwd); // called in costructor
+
+    bool isConnected(){return connected;}
 
 private:
     array<char, LEN_BUFF> _data;
@@ -42,13 +46,14 @@ private:
     boost::asio::io_context &io_context_;
     tcp::socket _socket;
     ifstream _file;
+    std::string user;
+    std::string pwd;
 
     std::string read_sync_n(int len);
     size_t do_write_str_sync(string str);
     bool send_file_chunked(Node n);
     void read_response_login();
     void login(string name, string pwd);
-    void connect(const tcp::resolver::results_type &endpoints, string name, string pwd); // called in costructor
     string read_sync_until_delimiter();
     static vector<string> extract_params(string &&str);
     vector<string> read_header();
