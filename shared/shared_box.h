@@ -12,8 +12,8 @@
 #include <queue>
 #include <optional>
 #include <condition_variable>
-#ifndef LAB5_JOB_H
-#define LAB5_JOB_H
+#ifndef SHARED_BOX_H
+#define SHARED_BOX_H
 
 #endif
 

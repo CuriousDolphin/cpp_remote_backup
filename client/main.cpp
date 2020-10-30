@@ -2,22 +2,16 @@
 #include "file_watcher.h"
 #include <boost/asio.hpp>
 #include "client.h"
-#include "request.h"
-#include "../shared/job.h"
 #include "../shared/duration_logger.h"
+#include "../shared/shared_map.h"
 #include "../shared/shared_box.h"
-#include "../shared/const.h"
-#include "../shared/hasher.h"
-#include <boost/algorithm/string_regex.hpp>
-#include <boost/regex.hpp>
+
 #include <boost/filesystem.hpp>
 
 const std::string path_to_watch = "../my_sync_folder";
 const auto fw_delay = std::chrono::milliseconds(5000);
-const auto snapshot_delay = std::chrono::seconds(60);
+const auto snapshot_delay = std::chrono::seconds(120);
 mutex m; // for print
-
-
 
 void print(const ostringstream &oss) {
     unique_lock<mutex> lg(m);
@@ -25,224 +19,137 @@ void print(const ostringstream &oss) {
 }
 
 int main() {
-    shared_box<std::unordered_map<string, Node>> remote_snapshot;
+    shared_map<Node> remote_snapshot;
+    shared_map<bool> pending_operation;
     boost::asio::io_context io_context;
     boost::asio::ip::tcp::resolver resolver(io_context);
     auto endpoints = resolver.resolve("localhost", "5555");
-    std::string hashedpsw = Hasher::pswSHA("mimmo");
-    client client(io_context, endpoints, "ivan", "mimmo");
     Jobs<Request> jobs;
+    client client(io_context, endpoints, "ivan", "mimmo", &remote_snapshot, &pending_operation);
 
-
-    std::thread io_thread([&io_context, &jobs, &client,&remote_snapshot]() {
+    std::thread io_thread([&io_context, &jobs, &client, &remote_snapshot]() {
         ostringstream oss;
         oss << "[IO_THREAD]: " << this_thread::get_id();
 
         print(oss);
         io_context.run();
-        Method req;
-        Node n;
+
         while (true) {
-            // get username
-            optional<Request> action = jobs.get();
-            if (!action.has_value()) {
+            optional<Request> req = jobs.get();
+            if (!req.has_value()) {
                 break;
             }
-            n=action->node;
-
             vector<string> params; // parsed header params
-            vector<string> tmp; // support
-            std::string res;
-            switch (action.value().method) {
-                case Method::PUT: {
-                    DurationLogger dl("Method::PUT " + PARAM_DELIMITER + n.getPath() );
-                    string str="";
-                    str += "PUT" + PARAM_DELIMITER + n.toPathSizeTimeHash() + REQUEST_DELIMITER;
-                    client.do_write_str_sync(str);
-                    res="";
-                    res=client.read_sync_n(30); // read response HEADER containing ok or error
-
-                    cout<<"HEADER RECEIVED: "+res;
-                    params.clear();
-                    tmp.clear();
-                    boost::split(tmp, res, boost::is_any_of(REQUEST_DELIMITER)); // take one line
-                    boost::split_regex(params, tmp[0], boost::regex(PARAM_DELIMITER)); // split by __
-                    ostringstream oss;
-                    oss<<"[params]:"<<endl;
-                    for (int i = 0; i < params.size(); i++) {
-                        oss <<"\t"<<i<< "\t" << params[i] << std::endl;
-                    }
-                    cout<<oss.str();
-
-                    if(params.at(0)=="OK"){ // se l'header di risposta e' ok mando il file
-                        bool ris = client.do_put_sync(n); // send file
-
-                        if (ris) {
-                            client.read_sync(); // read response
-                            client.handle_response(); // handle response
-                        }
-                    }
-
-
-
-                }
+            vector<string> tmp;    // support
+            std::string req_string;
+            switch (req.value().method) {
+                case Method::GET:
+                    req_string = "Method::GET " + req.value().node.toString();
                     break;
                 case Method::DELETE:
-                {
-                    DurationLogger dl("Method::DELETE "+n.getAbsolutePath());
-                    string str="";
-                    str += "DELETE" + PARAM_DELIMITER + n.getAbsolutePath() + REQUEST_DELIMITER;
-                    client.do_write_str_sync(str);
-                    client.read_sync(); // read response
-                    client.handle_response(); // handle response
-
-                }
-
+                    req_string = "Method::DELETE " + req.value().node.toString();
                     break;
-                case Method::GET:
+                case Method::PUT:
+                    req_string = "Method::PUT " + req.value().node.toString();
                     break;
                 case Method::PATCH:
+                    req_string = "Method::PATCH " + req.value().node.toString();
                     break;
-                case Method::SNAPSHOT: {
-                    DurationLogger dl("Method::SNAPSHOT");
-                    client.do_get_snapshot_sync();
-                    res="";
-                    res=client.read_sync_n(30); // read response HEADER containing number of elements of snapshot
-
-                    // handle response HEADER N_FILES AND DIM PAYLOAD
-
-                    params.clear();
-                    tmp.clear();
-                    boost::split(tmp, res, boost::is_any_of(REQUEST_DELIMITER)); // take one line
-                    boost::split_regex(params, tmp[0], boost::regex(PARAM_DELIMITER)); // split by __
-                    ostringstream oss;
-                    oss<<"[params]:"<<endl;
-                    for (int i = 0; i < params.size(); i++) {
-                        oss <<"\t"<<i<< "\t" << params[i] << std::endl;
-                    }
-                    cout<<oss.str();
-                    if(params.at(0)=="OK" && !params.at(1).empty() && !params.at(2).empty()){
-                        int n_files= stoi(params.at(1));
-                        int snapshot_size =  stoi(params.at(2));
-                        cout<<" Number remote files: "<<n_files<<"\n dim payload: "<<snapshot_size<<endl;
-                        std::map<string, Node> my_map;
-                        std::string path;
-                        std::string hash;
-                        vector<string> lines; // support
-                        // TODO MANAGE SNAPSHOT LEN > BUFFER
-                        if(snapshot_size<LEN_BUFF){
-                            std::string tmp2=client.read_sync_n(snapshot_size);
-
-                           // cout<<"[payload]:\n"<<tmp2<<"\n[end payload]"<<endl;
-
-
-                            boost::split_regex(lines, tmp2, boost::regex(REQUEST_DELIMITER)); // split lines
-                            vector<string> arguments(2);
-                            std::unordered_map<std::string, Node> remote_paths;
-                            for(auto&line:lines){ // for each line split filepath and hash
-                                if(!line.empty()){
-                                    //cout<<"[" <<line<<"]"<<endl;
-                                    boost::split_regex(arguments, line, boost::regex(PARAM_DELIMITER));
-                                    path=arguments[0];
-                                    hash=arguments[1];
-                                    cout<<"\t\t "<<path<<" @ "<<hash<<endl;
-                                    Node nod(path,false,hash);
-                                    remote_paths.insert({path, nod});
-                                }
-                            }
-                            remote_snapshot.set(remote_paths);
-                        }
-
-
-
-                    }
-                }
-
-
-                    break;
-
-                default:
+                case Method::SNAPSHOT:
+                    req_string = "Method::SNAPSHOT " ;
                     break;
             }
-
-
-        }
+            {
+                DurationLogger dl(req_string);
+                client.handle_request(req.value());
+            }
+        };
     });
 
-    std::thread fw_thread([&jobs,&remote_snapshot]() {
+    std::thread fw_thread([&jobs, &remote_snapshot, &pending_operation]() {
         ostringstream oss;
         oss << "[FW_THREAD]: " << this_thread::get_id() << endl;
         print(oss);
         // Create a FileWatcher instance that will check the current folder for changes every 5 seconds
 
-        FileWatcher fw{&remote_snapshot,path_to_watch, fw_delay};
+        FileWatcher fw{&remote_snapshot, path_to_watch, fw_delay};
         // Start monitoring a folder for changes and (in case of changes)
         // run a user provided lambda function
-        fw.start([&jobs,&remote_snapshot](Node node, FileStatus status) -> void {
+        fw.start([&jobs, &remote_snapshot, &pending_operation](Node node, FileStatus status) -> void {
             ostringstream oss;
             // Process only regular files, all other file types are ignored
             //if(!std::filesystem::is_regular_file(std::filesystem::path(path_to_watch)) && status != FileStatus::erased) {
             //   return;
             //}
-            cout << "------------- [FILE WATCHER]------------" << std::endl;
-
-            switch (status) {
-                case FileStatus::created:
-                    cout << "CREATED: \n"
-                         << node.toString() << '\n';
-                    {
-                        if (!node.is_dir()) {
-
-                            auto _remote_snapshot =remote_snapshot.get();
-                            auto path = node.getAbsolutePath();
-                            cout<<"ABSOLUTE PATH: "<<path<<endl;
-
-                            if(_remote_snapshot.find(path) != _remote_snapshot.end()){
-                                auto remote_hash = _remote_snapshot.at(path).getPath();
-                                cout<<" FILE PRESENT IN REMOTE SNAPSHOT WITH HASH: "<<remote_hash<<endl;
 
 
-                            }
-
-                            /*jobs.has(std::make_tuple(Method::PUT, node))){
-
-                            }*/
-                            jobs.put(
-                                    Request(Method::PUT,node)
-                            );
-                            jobs.put(Request(Method::SNAPSHOT, node));
+            if (!node.is_dir())
+                switch (status) {
+                    case FileStatus::created: {
 
 
-
+                        string op_key = "PUT_" + node.toString();
+                        if (!pending_operation.exist(op_key)) { //se non c'e' gia' una richiesta uguale in coda
+                            cout << "================= FW { CREATED }: \n" << node.toString() << endl;
+                            pending_operation.set(op_key, true);
+                            jobs.put(Request(Method::PUT, node));
+                        } else {
+                            cout << "================= FW { THROTTLE CREATED }" << endl;
                         }
 
                     }
-                    break;
-                case FileStatus::modified:
-                    std::cout << "MODIFIED: " << node.toString() << '\n';
-                    break;
-                case FileStatus::erased:
-                    std::cout << "ERASED: " << node.toString() << '\n';
-                    jobs.put(Request(Method::DELETE, node));
-                    jobs.put(Request(Method::SNAPSHOT, node));
-                    break;
-                case FileStatus::missing:
-                    std::cout << "MISSING: " << node.toString() << '\n';
-                    jobs.put(Request(Method::DELETE, node));
-                    jobs.put(Request(Method::SNAPSHOT, node));
-                    break;
-                case FileStatus::untracked:
-                    std::cout << "UNTRACKED: " << node.toString() << '\n';
-                    jobs.put(Request(Method::PUT, node));
-                    jobs.put(Request(Method::SNAPSHOT, node));
-                    break;
-                default:
-                    std::cout << "Error! Unknown file status.\n";
-            }
-            std::cout << "-------------[END WATCHER]---------------" << std::endl;
+                        break;
+                    case FileStatus::modified: {
+                        string op_key = "PATCH_" + node.toString();
+                        if (!pending_operation.exist(op_key)) {
+                            std::cout << "================= FW { MODIFIED }: " << node.toString() << '\n';
+                        } else {
+                            cout << "================= FW { THROTTLE MODIFIED }" << endl;
+                        }
+                    }
 
+                        break;
+                    case FileStatus::erased: {
+
+                        string op_key = "DELETE_" + node.toString() ;
+                        if (!pending_operation.exist(op_key)) { //se non c'e' gia' una richiesta uguale in coda
+                            std::cout << "================= FW { ERASED }: " << node.toString() << '\n';
+                            pending_operation.set(op_key, true);
+                            jobs.put(Request(Method::DELETE, node));
+                        } else {
+                            cout << "================= FW { THROTTLE ERASED }" << endl;
+                        }
+                    }
+                        break;
+                    case FileStatus::missing: {
+
+                        string op_key = "DELETE_" + node.toString();
+                        if (!pending_operation.exist(op_key)) { //se non c'e' gia' una richiesta uguale in coda
+                            std::cout << "================= FW { MISSING }: " << node.toString() << '\n';
+                            // TODO ADD GET HERE
+                            pending_operation.set(op_key, true);
+                            jobs.put(Request(Method::DELETE, node));
+                        } else {
+                            cout << "================= FW { THROTTLE MISSING}"<<endl;
+                        }
+                        break;
+                    }
+                    case FileStatus::untracked: {
+
+                        string op_key = "PUT_" + node.toString();
+                        if (!pending_operation.exist(op_key)) { //se non c'e' gia' una richiesta uguale in coda
+                            std::cout << "================= FW { UNTRACKED} : " << node.toString() << '\n';
+                            pending_operation.set(op_key, true);
+                            jobs.put(Request(Method::PUT, node));
+                        } else {
+                            cout << "================= FW { THROTTLE MISSING }"<<endl;
+                        }
+                    }
+                        break;
+                    default:
+                        std::cout << "Error! Unknown file status.\n";
+                }
         });
-
     });
 
     // reload snapshot every snapshot_delay
@@ -251,13 +158,9 @@ int main() {
         Node n;
         jobs.put(Request(Method::SNAPSHOT, n));
         this_thread::sleep_for(snapshot_delay);
-
     }
-
 
     io_thread.join();
     fw_thread.join();
     return 0;
 }
-
-

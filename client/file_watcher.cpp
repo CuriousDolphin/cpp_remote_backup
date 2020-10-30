@@ -2,7 +2,7 @@
 #include "file_watcher.h"
 
 // Keep a record of files from the base directory and their last modification time
-FileWatcher::FileWatcher(shared_box<std::unordered_map<string, Node>> * remote_snapshot,std::string path_to_watch, std::chrono::duration<int, std::milli> delay) : path_to_watch{path_to_watch},
+FileWatcher::FileWatcher(shared_map< Node> * remote_snapshot,std::string path_to_watch, std::chrono::duration<int, std::milli> delay) : path_to_watch{path_to_watch},
                                                                                        delay{delay} ,remote_snapshot{remote_snapshot} {
     //std::cout << "ACTUAL TREE " << std::endl;
     for (auto &file : std::filesystem::recursive_directory_iterator(path_to_watch)) {
@@ -15,12 +15,12 @@ FileWatcher::FileWatcher(shared_box<std::unordered_map<string, Node>> * remote_s
 
 // Monitor "path_to_watch" for changes and in case of a change execute the user supplied "action" function
 void FileWatcher::start(const std::function<void(Node, FileStatus)> &action) {
-    std::cout << "START MONITORING" << std::endl;
+    std::cout << "[START MONITORING]" << std::endl;
     while (running_) {
         // Wait for "delay" milliseconds
         std::this_thread::sleep_for(delay);
 
-        _remote_snapshot=remote_snapshot->get();
+        _remote_snapshot=remote_snapshot->get_map();
         // check se un file e' presente sul fs remoto ma non sul locale
         auto it = _remote_snapshot.begin();
         while (it != _remote_snapshot.end()) {
