@@ -66,7 +66,7 @@ private:
     void read_user_snapshot();
     void do_write(std::size_t length);
     void write_str(std::string str);
-    int write_str_sync(std::string str);
+    int write_str_sync(std::string&& str);
 
     tcp::socket _socket;
     std::ofstream _outfile;

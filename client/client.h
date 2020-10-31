@@ -54,6 +54,10 @@ private:
     vector<string> read_header();
 
     void handle_response(Request &&req);
+
+    string read_chunked_sync(int size);
+
+    void read_chunked_snapshot_and_set(int len);
 };
 
 #endif

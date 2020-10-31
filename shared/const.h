@@ -6,7 +6,7 @@
 
 const std::string PARAM_DELIMITER = "##";
 const std::string REQUEST_DELIMITER = "\r\n";
-const int LEN_BUFF = 10000;
+const int LEN_BUFF = 4096;
 
 // Define available file changes
 enum class Method
