@@ -9,6 +9,7 @@
 #include <functional>
 #include <boost/algorithm/string.hpp>
 #include <future>
+#include <vector>
 #include "../shared/const.h"
 
 using namespace std;

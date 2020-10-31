@@ -11,17 +11,10 @@
 #include "../shared/hasher.h"
 #include "../shared/to_time_t.h"
 #include "../shared/shared_map.h"
+#include "../shared/const.h"
 
 
-// Define available file changes
-enum class FileStatus {
-    created,   // file created on local fs
-    modified,  // file modified on local fs
-    erased,    // file deleted from local fs
-    missing,   // remote file not exist on local fs
-    untracked, // local file not exist on remote fs
-};
-
+using namespace  std;
 class FileWatcher {
 public:
     std::string path_to_watch;

@@ -60,6 +60,7 @@ void Session::read_and_save_file(std::string const & effectivePath,std::string c
         if(_outfile.fail()){
             cout<<"FAILED CREATING FILE"<<endl;
             read_request();
+            return;
         }
         std::cout<<" [SAVED FILE] at ~"<<effectivePath<<std::endl;
         std::string hash= Hasher::getSHA(effectivePath);
@@ -106,8 +107,8 @@ void Session::success_response_sync(std::string param1,std::string param2){
     cout<<"[write header]: ("<<n<<") :"<<"OK "+param1+PARAM_DELIMITER+param2+REQUEST_DELIMITER<<endl;
 }
 
-void Session::error_response_sync(){
-    write_str_sync("ERROR"+REQUEST_DELIMITER);
+void Session::error_response_sync(int cod_error){
+    write_str_sync("ERROR"+PARAM_DELIMITER+to_string(cod_error)+REQUEST_DELIMITER);
 }
 
 void Session::handle_request() {
@@ -129,14 +130,14 @@ void Session::handle_request() {
     }
     catch (const std::exception &) {
         cout << "UNKNOWN COMMAND" << std::endl;
-        write_str("Unknown command...Bye!");
+        error_response_sync(ERROR_COD.at(Server_error::UNKNOWN_COMMAND));
         return;
     }
 
     switch (action) {
         case 1: { // LOGIN
             if (params.size() < 3) {
-                write_str_sync("Wrong number arguments...Bye!");
+                error_response_sync(ERROR_COD.at(Server_error::WRONG_N_ARGS));
                 return;
             }
             string user = params.at(1);
@@ -145,13 +146,12 @@ void Session::handle_request() {
             if (res) {
                 cout << "RESPONSE: OK" << std::endl;
                 success_response_sync("");
-                //  write_str_sync("OK\n");
                 cout << "-------------------------------------" << std::endl;
                 read_request();
             } else {
                 cout<<"RESPONSE: WRONG CREDENTIALS"<<endl;
                 cout << "-------------------------------------" << std::endl;
-                write_str_sync("Wrong credentials...Bye!");
+                error_response_sync(ERROR_COD.at(Server_error::WRONG_CREDENTIALS));
             }
 
         }
@@ -166,7 +166,7 @@ void Session::handle_request() {
         case 3: // PUT
         {
             if (params.size() < 4) {
-                write_str_sync("Wrong number arguments...Bye!");
+                error_response_sync(ERROR_COD.at(Server_error::WRONG_N_ARGS));
                 return;
             }
             string path = params.at(1);
@@ -182,18 +182,12 @@ void Session::handle_request() {
             _outfile.open(full_path);
             if(_outfile.fail()){
                 cout<<"FILE OPEN ERROR"<<endl;
+
+                error_response_sync(ERROR_COD.at(Server_error::FILE_CREATE_ERROR));
                 return;
-
-                error_response_sync();
             }
-
             success_response_sync(); // send ok
-
             read_and_save_file(full_path,path,len);
-            // read_request();
-
-
-            // read_request();
         }
             break;
         case 4: // PATCH
@@ -230,10 +224,10 @@ void Session::handle_request() {
                         oss<<line;
                     }
                 }
-                int n=write_str_sync(oss.str());
+                int n = write_str_sync(oss.str()); // send body
                 cout<<"[SENT] ("<<n <<") "<<endl;
             }catch(exception e){
-                // TODO HANDLE THIS
+                error_response_sync(ERROR_COD.at(Server_error::UNKNOWN_ERROR));
             }
 
 

@@ -59,7 +59,7 @@ private:
     void success_response_sync(); // reponse 'OK'
     void success_response_sync(std::string param); // 'OK param1'
     void success_response_sync(std::string param1,std::string param2);  // 'OK param1 param2'
-    void error_response_sync(); // reponse 'ERROR'
+    void error_response_sync(int cod_error); // 'ERROR COD_ERROR'
     void handle_request();
     // create directories if doesnt  exist
     void create_dirs(string path);
@@ -75,6 +75,8 @@ private:
     std::string _user;
 
     bool delete_file(const string &effectivePath, const string &relativePath);
+
+
 };
 
 #endif
