@@ -77,14 +77,13 @@ void Session::read_and_save_file(std::string const & effectivePath,std::string c
         cout<<tmp<<endl;
         success_response_sync(hash);
 
-        read_user_snapshot();
+       // read_user_snapshot();
 
         read_request();
     }
 
 }
 
-// TODO ADD HASHING
 bool Session::login(const string &user, const string &pwd) {
     string savedpwd = _db->get_user_pwd(user);
     if (savedpwd == Hasher::pswSHA(pwd)) {
@@ -204,6 +203,7 @@ void Session::handle_request() {
                 auto it = files.begin();
                 int tot_len =0;
                 std::string line ;
+                // SCAN SNAPSHOT SAVED IN REDIS
                 while(it!= files.end()){
                     line="";
                     line+=it->first;
@@ -215,7 +215,10 @@ void Session::handle_request() {
                     lines_to_send.push_back(line);
                     it++;
                 }
-                success_response_sync(to_string(files.size()),to_string(tot_len)); // send HEADER: num_files dim_payload
+                success_response_sync(
+                        to_string(files.size()),
+                        to_string(tot_len)
+                                      ); // send HEADER: num_files dim_payload
 
                 std::ostringstream oss;
                 for(auto& line:lines_to_send){ // send payload list of pats and hash
@@ -306,7 +309,7 @@ void Session::write_str(std::string str) {
                              });
 }
 
-int Session::write_str_sync(std::string str) {
+int Session::write_str_sync(std::string&& str) {
     int byte_sent=_socket.write_some(boost::asio::buffer(str, str.size()));
     return byte_sent;
 }
