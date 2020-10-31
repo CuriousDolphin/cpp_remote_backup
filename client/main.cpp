@@ -154,10 +154,14 @@ int main() {
 
     // reload snapshot every snapshot_delay
     while (true) {
+        if (!pending_operation.exist("SNAPSHOT")) {
+            Node n;
+            jobs.put(Request(Method::SNAPSHOT, n));
+            pending_operation.set("SNAPSHOT",true);
+            this_thread::sleep_for(snapshot_delay);
+        }
 
-        Node n;
-        jobs.put(Request(Method::SNAPSHOT, n));
-        this_thread::sleep_for(snapshot_delay);
+
     }
 
     io_thread.join();

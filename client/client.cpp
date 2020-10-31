@@ -145,37 +145,14 @@ void client::handle_response(Request &&req)
             int n_files = stoi(params.at(1));
             int snapshot_size = stoi(params.at(2));
             cout << " Number remote files: " << n_files << "\n dim payload: " << snapshot_size << endl;
-            std::map<string, Node> my_map;
-            std::string path;
-            std::string hash;
-            vector<string> lines; // support
-            // TODO MANAGE SNAPSHOT LEN > BUFFER
-            if (snapshot_size < LEN_BUFF)
-            {
-                std::string tmp2 = read_sync_n(snapshot_size);
-
-                boost::split_regex(lines, tmp2, boost::regex(REQUEST_DELIMITER)); // split lines
-                vector<string> arguments(2);
-                std::unordered_map<std::string, Node> remote_paths;
-                for (auto &line : lines)
-                { // for each line split filepath and hash
-                    if (!line.empty())
-                    {
-                        //cout<<"[" <<line<<"]"<<endl;
-                        boost::split_regex(arguments, line, boost::regex(PARAM_DELIMITER));
-                        path = arguments[0];
-                        hash = arguments[1];
-                        cout << "\t\t " << path << " @ " << hash << endl;
-                        Node nod(path, false, hash);
-                        _remote_snapshot->set(path, move(nod));
-                    }
-                }
-            }
+            read_chunked_snapshot_and_set(snapshot_size);
         }
+        _pending_operations->remove("SNAPSHOT");
     }
     break;
     }
 }
+
 void client::handle_request(Request req)
 {
     vector<string> params; // parsed header params
@@ -278,4 +255,46 @@ bool client::send_file_chunked(Node n)
     }
     _file.close();
     return true;
+}
+
+void client::read_chunked_snapshot_and_set(int len){
+    int n_to_read;
+    int size=len;
+
+    // read chunked
+    string tmp="";
+    while(size >0)
+    {
+        if (size > LEN_BUFF)
+            n_to_read = LEN_BUFF-1;
+        else
+            n_to_read = size;
+        _data.fill(0);
+        int r = _socket.read_some(boost::asio::buffer(_data.data(), n_to_read));
+        if(r>0)
+            tmp+=_data.data();
+        size -= r;
+    }
+
+    std::string path;
+    std::string hash;
+    vector<string> lines; // support
+    vector<string> arguments(2);
+    boost::split_regex(lines, tmp, boost::regex(REQUEST_DELIMITER)); // split lines
+    cout<<"[NUMBER LINES] "<<lines.size()<<endl;
+    int i=0;
+    for (auto &line : lines)
+    { // for each line split filepath and hash
+        i++;
+        if (!line.empty())
+        {
+            boost::split_regex(arguments, line, boost::regex(PARAM_DELIMITER));
+            path = arguments[0];
+            hash = arguments[1];
+            cout << "\t\t ["<<i<<"]  " << path << " @ " << hash << endl;
+            Node nod(path, false, hash);
+            _remote_snapshot->set(path, move(nod));
+        }
+    }
+
 }
