@@ -52,7 +52,7 @@ public:
 
 private:
     void read_request(); //async
-    void read_and_save_file(std::string const & effectivePath,std::string const & relativePath, int len);
+    void read_and_save_file(std::string const & effectivePath,std::string const & relativePath, int len, std::string const & reqHash);
 
     // TODO ADD HASHING
     bool login(const string &user, const string &pwd);

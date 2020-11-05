@@ -123,6 +123,10 @@ void client::handle_response(Request &&req)
             string hash = params.at(1);
             _remote_snapshot->set(req.node.getAbsolutePath(), move(node));
         }
+
+        if (params.at(0) == "ERROR"){
+            //TODO handle errors
+        }
         _pending_operations->remove("PUT_"+req.node.toString());
     }
     break;
@@ -177,6 +181,12 @@ void client::handle_request(Request req)
                 handle_response(move(req));
             }
         }
+        if (params.at(0) == "ERROR"){
+
+            //TODO handle errors
+            //switch con tutti i tipi di errore
+        }
+
         break;
     }
     case Method::DELETE:

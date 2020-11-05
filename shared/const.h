@@ -33,7 +33,9 @@ enum class Server_error
     WRONG_N_ARGS,
     FILE_EXIST,
     UNKNOWN_ERROR,
-    FILE_CREATE_ERROR
+    FILE_CREATE_ERROR,
+    FILE_HASH_MISMATCH,
+    FILE_ALREADY_EXISTS
 };
 
 const std::map<Server_error, int> ERROR_COD = {{Server_error::WRONG_CREDENTIALS, 1}, // "LOGIN USER PWD"
@@ -41,7 +43,9 @@ const std::map<Server_error, int> ERROR_COD = {{Server_error::WRONG_CREDENTIALS,
                                                {Server_error::WRONG_N_ARGS, 3},
                                                {Server_error::FILE_EXIST, 4},
                                                {Server_error::UNKNOWN_ERROR, 5},
-                                               {Server_error::FILE_CREATE_ERROR, 5}
+                                               {Server_error::FILE_CREATE_ERROR, 6},
+                                               {Server_error::FILE_HASH_MISMATCH, 7},
+                                               {Server_error::FILE_ALREADY_EXISTS, 8}
 
 };
 
