@@ -124,8 +124,9 @@ void client::handle_response(Request &&req)
             _remote_snapshot->set(req.node.getAbsolutePath(), move(node));
         }
 
-        if (params.at(0) == "ERROR"){
+        if (params.size() == 1 && params.at(0) == "ERROR"){
             //TODO handle errors
+            std::cout << "SOME KIND OF ERROR HAPPENED" << std::endl;
         }
         _pending_operations->remove("PUT_"+req.node.toString());
     }
@@ -137,6 +138,9 @@ void client::handle_response(Request &&req)
             // aggiorno lo snapshot
             string hash = params.at(1);
             _remote_snapshot->remove(req.node.getAbsolutePath());
+        }
+        if (params.size() == 2 && params.at(0) == "ERROR"){
+
         }
         _pending_operations->remove("DELETE_"+req.node.toString());
     }
@@ -172,19 +176,38 @@ void client::handle_request(Request req)
         str += "PUT" + PARAM_DELIMITER + node.toPathSizeTimeHash() + REQUEST_DELIMITER;
         do_write_str_sync(str); // send header request
         params = read_header();
-        if (params.size() == 1 && params.at(0) == "OK")
-        { // se l'header di risposta e' ok mando il file
+        if (params.size() == 1 && params.at(0) == "OK") // se l'header di risposta e' ok mando il file
+        {
             bool ris = send_file_chunked(node);
             params.clear();
-            if (ris)
-            { // file sended successfull
+            if (ris){ // file sended successfull
                 handle_response(move(req));
             }
+            else{ // some kind of error --> remove pending operation
+                _pending_operations->remove("PUT_"+req.node.toString());
+            }
         }
-        if (params.at(0) == "ERROR"){
-
-            //TODO handle errors
-            //switch con tutti i tipi di errore
+        if (params.size() == 2 && params.at(0) == "ERROR"){ // se header risposta è error gestisco secondo ERROR CODE
+            switch (std::stoi(params.at(1))){ //cast code error in int
+                case 3:{ //WRONG_N_ARGS
+                    std::cout << "WRONG NUMBER OF ARGUMENTS!" << std::endl;
+                    break;
+                }
+                case 6:{ // FILE_CREATE_ERROR
+                    std::cout << "FILE CREATE ERROR!" << std::endl;
+                    break;
+                }
+                case 7:{ // FILE_HASH_MISMATCH
+                    std::cout << "FILE HASH MISMATCH!" << std::endl;
+                    break;
+                }
+                case 8:{ // FILE_ALREADY_EXISTS
+                    std::cout << "FILE ALREADY EXISTS" << std::endl;
+                    break;
+                }
+                default:
+                    break;
+            }
         }
 
         break;
@@ -192,7 +215,6 @@ void client::handle_request(Request req)
     case Method::DELETE:
     {
         string str = "DELETE" + PARAM_DELIMITER + node.getAbsolutePath() + REQUEST_DELIMITER;
-        ;
         do_write_str_sync(str);
         handle_response(move(req));
         break;

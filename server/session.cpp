@@ -202,8 +202,15 @@ void Session::handle_request() {
                     error_response_sync(ERROR_COD.at(Server_error::FILE_ALREADY_EXISTS));
                 }
                 else{ //file already existent on server with different hash --> PATCH
-                    delete_file(full_path, path);
-                    read_and_save_file(full_path, path, len, hash);
+                    bool check = delete_file(full_path, path);
+                    if (check) { // succesfull delete
+                        success_response_sync(std::to_string(check));
+                        read_and_save_file(full_path, path, len, hash);
+                    }
+                    else{ //delete error
+                        std::cout << "FILE DELETE ERROR!" << std::endl;
+                        error_response_sync(ERROR_COD.at(Server_error::FILE_DELETE_ERROR));
+                    }
                 }
 
                 read_request();
@@ -254,17 +261,22 @@ void Session::handle_request() {
                 error_response_sync(ERROR_COD.at(Server_error::UNKNOWN_ERROR));
             }
 
-
             read_request();
             break;
         }
         case 6: // DELETE
         {
             string path = params.at(1);
-            string full_path = DATA_DIR+_user+path;
+            string full_path = DATA_DIR + _user + path;
             bool check = delete_file(full_path,path);
             // TODO error handling
-            success_response_sync(std::to_string(check));
+            if (check) { // succesfull delete
+                success_response_sync(std::to_string(check));
+            }
+            else{ //some kind of error
+                std::cout << "FILE DELETE ERROR!" << std::endl;
+                error_response_sync(ERROR_COD.at(Server_error::FILE_DELETE_ERROR));
+            }
             read_request();
             break;
         }
@@ -281,7 +293,7 @@ void Session::handle_request() {
 
 // delete file from fs and redis
 bool Session::delete_file(std::string const & effectivePath,std::string const & relativePath){
-    bool fs_deleted=false;
+    bool fs_deleted = false;
     if(boost::filesystem::exists(effectivePath)){
         fs_deleted = boost::filesystem::remove(effectivePath);
     }

@@ -26,6 +26,7 @@ enum class FileStatus
     missing,   // remote file not exist on local fs
     untracked, // local file not exist on remote fs
 };
+// Define available server error types
 enum class Server_error
 {
     WRONG_CREDENTIALS,
@@ -35,18 +36,20 @@ enum class Server_error
     UNKNOWN_ERROR,
     FILE_CREATE_ERROR,
     FILE_HASH_MISMATCH,
-    FILE_ALREADY_EXISTS
+    FILE_ALREADY_EXISTS,
+    FILE_DELETE_ERROR
 };
 
-const std::map<Server_error, int> ERROR_COD = {{Server_error::WRONG_CREDENTIALS, 1}, // "LOGIN USER PWD"
-                                               {Server_error::UNKNOWN_COMMAND, 2},   //  "GET FILPATH"
-                                               {Server_error::WRONG_N_ARGS, 3},
-                                               {Server_error::FILE_EXIST, 4},
-                                               {Server_error::UNKNOWN_ERROR, 5},
-                                               {Server_error::FILE_CREATE_ERROR, 6},
-                                               {Server_error::FILE_HASH_MISMATCH, 7},
-                                               {Server_error::FILE_ALREADY_EXISTS, 8}
-
+const std::map<Server_error, int> ERROR_COD = {
+        {Server_error::WRONG_CREDENTIALS, 1}, // "LOGIN USER PWD"
+        {Server_error::UNKNOWN_COMMAND, 2},   //  "GET FILPATH"
+        {Server_error::WRONG_N_ARGS, 3},
+        {Server_error::FILE_EXIST, 4},
+        {Server_error::UNKNOWN_ERROR, 5},
+        {Server_error::FILE_CREATE_ERROR, 6},
+        {Server_error::FILE_HASH_MISMATCH, 7},
+        {Server_error::FILE_ALREADY_EXISTS, 8},
+        {Server_error::FILE_DELETE_ERROR, 9}
 };
 
 #endif
