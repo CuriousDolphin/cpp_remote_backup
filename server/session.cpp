@@ -159,7 +159,6 @@ void Session::handle_request() {
                 cout << "-------------------------------------" << std::endl;
                 error_response_sync(ERROR_COD.at(Server_error::WRONG_CREDENTIALS));
             }
-
         }
             break;
         case 2:  // GET
@@ -205,7 +204,7 @@ void Session::handle_request() {
                     bool check = delete_file(full_path, path);
                     if (check) { // succesfull delete
                         success_response_sync(std::to_string(check));
-                        read_and_save_file(full_path, path, len, hash);
+                        read_and_save_file(full_path, path, len, hash); //revert complete
                     }
                     else{ //delete error
                         std::cout << "FILE DELETE ERROR!" << std::endl;
@@ -269,11 +268,10 @@ void Session::handle_request() {
             string path = params.at(1);
             string full_path = DATA_DIR + _user + path;
             bool check = delete_file(full_path,path);
-            // TODO error handling
             if (check) { // succesfull delete
                 success_response_sync(std::to_string(check));
             }
-            else{ //some kind of error
+            else{ //some kind of error during delete
                 std::cout << "FILE DELETE ERROR!" << std::endl;
                 error_response_sync(ERROR_COD.at(Server_error::FILE_DELETE_ERROR));
             }
@@ -298,7 +296,7 @@ bool Session::delete_file(std::string const & effectivePath,std::string const & 
         fs_deleted = boost::filesystem::remove(effectivePath);
     }
     _db->delete_file_from_snapshot(_user,relativePath);
-     return fs_deleted;
+    return fs_deleted;
 }
 
 // create directories if doesnt  exist

@@ -124,9 +124,15 @@ void client::handle_response(Request &&req)
             _remote_snapshot->set(req.node.getAbsolutePath(), move(node));
         }
 
-        if (params.size() == 1 && params.at(0) == "ERROR"){
-            //TODO handle errors
-            std::cout << "SOME KIND OF ERROR HAPPENED" << std::endl;
+        if (params.size() == 2 && params.at(0) == "ERROR"){
+            switch (std::stoi(params.at(1))) { //cast code error in int
+                case 7: { // FILE_HASH_MISMATCH
+                    std::cout << "FILE HASH MISMATCH!" << std::endl;
+                    break;
+                }
+                default:
+                    break;
+            }
         }
         _pending_operations->remove("PUT_"+req.node.toString());
     }
@@ -140,7 +146,7 @@ void client::handle_response(Request &&req)
             _remote_snapshot->remove(req.node.getAbsolutePath());
         }
         if (params.size() == 2 && params.at(0) == "ERROR"){
-
+            std::cout << "FILE DELETE ERROR" << std::endl;
         }
         _pending_operations->remove("DELETE_"+req.node.toString());
     }
@@ -154,6 +160,9 @@ void client::handle_response(Request &&req)
             int snapshot_size = stoi(params.at(2));
             cout << " Number remote files: " << n_files << "\n dim payload: " << snapshot_size << endl;
             read_chunked_snapshot_and_set(snapshot_size);
+        }
+        if (params.at(0) == "ERROR"){
+            std::cout << "UNKNOWN ERROR DURING SNAPSHOT" << std::endl;
         }
         _pending_operations->remove("SNAPSHOT");
     }
@@ -197,17 +206,15 @@ void client::handle_request(Request req)
                     std::cout << "FILE CREATE ERROR!" << std::endl;
                     break;
                 }
-                case 7:{ // FILE_HASH_MISMATCH
-                    std::cout << "FILE HASH MISMATCH!" << std::endl;
-                    break;
-                }
                 case 8:{ // FILE_ALREADY_EXISTS
+                    //TODO update remote snapshot
                     std::cout << "FILE ALREADY EXISTS" << std::endl;
                     break;
                 }
                 default:
                     break;
             }
+            _pending_operations->remove("PUT_"+req.node.toString());
         }
 
         break;
