@@ -68,8 +68,8 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action) {
                     }
 
                     // File modification
-                    // TODO CONTROLLO SULL'HASH
                     if (paths_[file.path().string()].getLastWriteTime() != current_file_last_write_time) {
+
                         std::string old_hash = paths_[file.path().string()].getLastHash();
                         std::string new_hash = Hasher::getSHA(file.path().string());
 
