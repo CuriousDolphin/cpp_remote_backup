@@ -27,6 +27,7 @@ void Session::read_request() {
                             [this, self](std::error_code ec, std::size_t length) {
                                 if (!ec) {
                                     //  std::cout<<std::this_thread::get_id()<<" READ :"<<_data.data()<<"("<<length<<std::endl;
+                                    cout << "===================[START REQ "<< _user<<"]==================" << std::endl;
                                     handle_request();
                                 } else
                                     std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
@@ -36,7 +37,7 @@ void Session::read_request() {
 
 void Session::read_and_save_file(std::string const & effectivePath,std::string const & relativePath, int len, std::string const & reqHash) {
     auto self(shared_from_this());
-     //std::cout<<" [READ] FILE LEN:"<<len<<std::endl;
+     std::cout<<" [READ] FILE LEN:"<<len<<std::endl;
 
     if(len > 0)
     {
@@ -62,10 +63,11 @@ void Session::read_and_save_file(std::string const & effectivePath,std::string c
         }
         //controllo hash de file, in caso di errore -> revert
         std::string hash = Hasher::getSHA(effectivePath);
+
         if (reqHash != hash){
             delete_file(effectivePath, relativePath);
-
             error_response_sync(ERROR_COD.at(Server_error::FILE_HASH_MISMATCH));
+            std::cout << effectivePath + ": " + hash + " VS " + reqHash << std::endl;
         }
         else {
             std::cout << " [SAVED FILE] at ~" << effectivePath << std::endl;
@@ -123,7 +125,6 @@ void Session::handle_request() {
     boost::split(tmp1, _data, boost::is_any_of(REQUEST_DELIMITER)); // take one line
     boost::split_regex(params, tmp1[0], boost::regex(PARAM_DELIMITER)); // split by __
 
-    cout << "===================[START REQ "<< _user<<"]==================" << std::endl;
     //cout<<this_thread::get_id() << " REQUEST "<<"FROM "<<_user <<": "<< std::endl;
 
     for (int i = 0; i < params.size(); i++) {
@@ -161,10 +162,29 @@ void Session::handle_request() {
             }
         }
             break;
-        case 2:  // GET
-        {
+        case 2:  { //GET
+            if (params.size() != 2) {
+                error_response_sync(ERROR_COD.at(Server_error::WRONG_N_ARGS));
+                return;
+            }
+            string path = params.at(1);
+            string full_path = DATA_DIR + _user + path;
+            //TODO GET
+            //TODO exists in db?
+            if (boost::filesystem::exists(full_path)) { //does requested file exists?
+                success_response_sync(); //send ok
+                //send file chunked (new func)
+                //all'interno read_and_save ma con write_async, uso outfile ma in lettura
 
+            }
+            else{
+                //TODO handle errors
+                std::cout << "FILE DOES NOT EXISTS!" << std::endl;
+
+                error_response_sync(ERROR_COD.at(Server_error::FILE_NOT_FOUND));
+            }
             read_request();
+            break;
         }
 
             break;
@@ -195,23 +215,31 @@ void Session::handle_request() {
                 read_and_save_file(full_path, path, len, hash);
             }
             else{
-                if (hash == Hasher::getSHA(full_path)){
-                    cout << "FILE ALREADY EXISTS" << endl;
 
+                if (hash == Hasher::getSHA(full_path)){ //TODO check on db's hash, don't calculate it!
+                    cout << "FILE ALREADY EXISTS" << endl;
                     error_response_sync(ERROR_COD.at(Server_error::FILE_ALREADY_EXISTS));
                 }
                 else{ //file already existent on server with different hash --> PATCH
                     bool check = delete_file(full_path, path);
                     if (check) { // succesfull delete
-                        success_response_sync(std::to_string(check));
+                        create_dirs(full_path); // create dirs if not exists
+                        _outfile.open(full_path);
+                        if (_outfile.fail()) {
+                            cout << "FILE OPEN ERROR" << endl;
+                            error_response_sync(ERROR_COD.at(Server_error::FILE_CREATE_ERROR));
+                            read_request();
+                            return;
+                        }
+                        success_response_sync();
                         read_and_save_file(full_path, path, len, hash); //revert complete
+                        return;
                     }
                     else{ //delete error
                         std::cout << "FILE DELETE ERROR!" << std::endl;
                         error_response_sync(ERROR_COD.at(Server_error::FILE_DELETE_ERROR));
                     }
                 }
-
                 read_request();
             }
         }
@@ -278,16 +306,10 @@ void Session::handle_request() {
             read_request();
             break;
         }
-
-        read_request();
-        break;
-
-
     }
     cout << "===================[END REQ "<< _user<<"]==================" << std::endl;
-
-
 }
+
 
 // delete file from fs and redis
 bool Session::delete_file(std::string const & effectivePath,std::string const & relativePath){

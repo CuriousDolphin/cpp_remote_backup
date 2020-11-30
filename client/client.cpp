@@ -152,6 +152,18 @@ void client::handle_response(Request &&req)
     }
     break;
 
+    case Method::GET: // response params must be OK- ??? or ERROR-error code
+    {
+        if (params.size() == 2 && params.at(0) == "OK") { // file exists on server, start sending
+
+        }
+        if (params.size() == 2 && params.at(0) == "ERROR") { //file does not exists on server
+
+        }
+        _pending_operations->remove("PUT_"+req.node.toString());
+    }
+    break;
+
     case Method::SNAPSHOT:
     {
         if (params.at(0) == "OK" && !params.at(1).empty() && !params.at(2).empty())
@@ -208,6 +220,8 @@ void client::handle_request(Request req)
                 }
                 case 8:{ // FILE_ALREADY_EXISTS
                     //TODO update remote snapshot
+                    _remote_snapshot->set(req.node.getAbsolutePath(), move(node));
+
                     std::cout << "FILE ALREADY EXISTS" << std::endl;
                     break;
                 }
@@ -227,8 +241,12 @@ void client::handle_request(Request req)
         break;
     }
 
-    case Method::GET:
+    case Method::GET: {
+        string str ="GET" + PARAM_DELIMITER + node.getAbsolutePath() + REQUEST_DELIMITER;
+        do_write_str_sync(str);
+        handle_response(move(req));
         break;
+    }
     case Method::PATCH:
         break;
     case Method::SNAPSHOT:

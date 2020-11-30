@@ -100,9 +100,11 @@ int main() {
                     }
                         break;
                     case FileStatus::modified: {
-                        string op_key = "PATCH_" + node.toString();
+                        string op_key = "PUT_" + node.toString();
                         if (!pending_operation.exist(op_key)) {
                             std::cout << "================= FW { MODIFIED }: " << node.toString() << '\n';
+                            pending_operation.set(op_key, true);
+                            jobs.put(Request(Method::PUT, node));
                         } else {
                             cout << "================= FW { THROTTLE MODIFIED }" << endl;
                         }
@@ -121,14 +123,14 @@ int main() {
                         }
                     }
                         break;
+                        // TODO ADD GET HERE
                     case FileStatus::missing: {
-
-                        string op_key = "DELETE_" + node.toString();
-                        if (!pending_operation.exist(op_key)) { //se non c'e' gia' una richiesta uguale in coda
+                        //string op_key = "DELETE_" + node.toString();
+                        string op_key = "GET_" + node.toString();
+                        if (!pending_operation.exist(op_key)) {
                             std::cout << "================= FW { MISSING }: " << node.toString() << '\n';
-                            // TODO ADD GET HERE
                             pending_operation.set(op_key, true);
-                            jobs.put(Request(Method::DELETE, node));
+                            jobs.put(Request(Method::GET, node));
                         } else {
                             cout << "================= FW { THROTTLE MISSING}"<<endl;
                         }
