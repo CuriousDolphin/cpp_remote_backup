@@ -58,6 +58,8 @@ private:
     string read_chunked_sync(int size);
 
     void read_chunked_snapshot_and_set(int len);
+
+    bool read_and_save_file(Node n);
 };
 
 #endif

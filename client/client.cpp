@@ -152,15 +152,15 @@ void client::handle_response(Request &&req)
     }
     break;
 
-    case Method::GET: // response params must be OK- ??? or ERROR-error code
+    case Method::GET: // response params must be OK or ERROR-error code
     {
-        if (params.size() == 2 && params.at(0) == "OK") { // file exists on server, start sending
+        if (params.size() == 1 && params.at(0) == "OK") { // file exists on server, start sending
 
         }
         if (params.size() == 2 && params.at(0) == "ERROR") { //file does not exists on server
-
+            std::cout << "FILE NOT EXISTS ON SERVER!" << std::endl;
         }
-        _pending_operations->remove("PUT_"+req.node.toString());
+        _pending_operations->remove("GET_"+req.node.toString());
     }
     break;
 
@@ -353,5 +353,31 @@ void client::read_chunked_snapshot_and_set(int len){
             _remote_snapshot->set(path, move(nod));
         }
     }
+}
 
+bool client::read_and_save_file(Node n)
+{
+    cout << "[RECEIVING FILE]" << endl;
+    _file.open(n.getPath(), ios::out | ios::app | ios::binary);
+    if (_file.fail())
+    {
+        cout << "failed to open file: " << n.getPath() << endl;
+        return false;
+    }
+    _file.seekg(0, _file.beg);
+    int size = n.getSize();
+    int n_to_send;
+    while (size > 0)
+    {
+        if (size > LEN_BUFF)
+            n_to_send = LEN_BUFF;
+        else
+            n_to_send = size;
+        _file.read(_data.data(), n_to_send);
+        int r = _socket.write_some(boost::asio::buffer(_data, n_to_send));
+        // cout <<this_thread::get_id()<< "SEND [" << n_to_send << "]" << "REC [" << r << "]"  << endl;
+        size -= r;
+    }
+    _file.close();
+    return true;
 }

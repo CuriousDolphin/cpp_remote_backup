@@ -172,8 +172,17 @@ void Session::handle_request() {
             //TODO GET
             //TODO exists in db?
             if (boost::filesystem::exists(full_path)) { //does requested file exists?
+                _infile.open(full_path);
+                if (_infile.fail()) {
+                    cout << "FILE OPEN ERROR" << endl;
+
+                    error_response_sync(ERROR_COD.at(Server_error::FILE_CREATE_ERROR));
+                    return;
+                }
                 success_response_sync(); //send ok
-                //send file chunked (new func)
+                int len = boost::filesystem::file_size(path);
+                send_file_chunked(full_path, path, len);
+
                 //all'interno read_and_save ma con write_async, uso outfile ma in lettura
 
             }
@@ -366,6 +375,46 @@ void Session::write_str(std::string str) {
 int Session::write_str_sync(std::string&& str) {
     int byte_sent=_socket.write_some(boost::asio::buffer(str, str.size()));
     return byte_sent;
+}
+
+void Session::send_file_chunked(std::string const & effectivePath,std::string const & relativePath, int len) {
+    auto self(shared_from_this());
+    std::cout <<" [WRITE] FILE LEN:" << len << std::endl;
+
+    if(len > 0) //prima volta che entra cosa succede??
+    {
+        async_write(_socket, boost::asio::buffer(_data, len),
+                                 [this, self,len,effectivePath,relativePath](std::error_code ec, std::size_t length){
+                                    if (!ec) {
+                                        std::cout<<std::this_thread::get_id()<<" [READED] : ("<<length<<")"<<_data.data()<<std::endl;
+
+                                        _infile.read(_data.data(), length);
+                                        send_file_chunked(effectivePath,relativePath,len-length);
+
+                                    } else
+                                        std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
+                                                  << " CODE " << ec.value() << std::endl;
+                                });
+    }else{
+
+        _infile.close();
+        if(_infile.fail()){
+            cout<<"FAILED SENDING FILE"<<endl;
+            read_request();
+            return;
+        }
+        else {
+            std::cout << " [SENT FILE] at ~" << effectivePath << std::endl;
+
+            //_db->save_user_file_hash(_user, relativePath, hash);
+
+            //string tmp = _db->get(effectivePath);
+            //cout << tmp << endl;
+            success_response_sync();
+        }
+        read_request();
+    }
+
 }
 
 
