@@ -152,10 +152,11 @@ void client::handle_response(Request &&req)
     }
     break;
 
-    case Method::GET: // response params must be OK or ERROR-error code
+    case Method::GET: // response params must be OK-filesize or ERROR-error code
     {
-        if (params.size() == 1 && params.at(0) == "OK") { // file exists on server, start sending
-
+        if (params.size() == 2 && params.at(0) == "OK") { // file exists on server, start receiving
+            int filesize = stoi(params.at(1));
+            bool ris = read_and_save_file(node, filesize);
         }
         if (params.size() == 2 && params.at(0) == "ERROR") { //file does not exists on server
             std::cout << "FILE NOT EXISTS ON SERVER!" << std::endl;
@@ -355,29 +356,28 @@ void client::read_chunked_snapshot_and_set(int len){
     }
 }
 
-bool client::read_and_save_file(Node n)
+bool client::read_and_save_file(Node n, int filesize)
 {
     cout << "[RECEIVING FILE]" << endl;
-    _file.open(n.getPath(), ios::out | ios::app | ios::binary);
-    if (_file.fail())
+    _ofile.open(n.getPath(), ios::out | ios::app | ios::binary);
+    if (_ofile.fail())
     {
         cout << "failed to open file: " << n.getPath() << endl;
         return false;
     }
-    _file.seekg(0, _file.beg);
-    int size = n.getSize();
-    int n_to_send;
-    while (size > 0)
+    //_ofile.seekg(0, _ofile.beg);
+    int n_to_receive;
+    while (filesize > 0)
     {
-        if (size > LEN_BUFF)
-            n_to_send = LEN_BUFF;
+        if (filesize > LEN_BUFF)
+            n_to_receive = LEN_BUFF;
         else
-            n_to_send = size;
-        _file.read(_data.data(), n_to_send);
-        int r = _socket.write_some(boost::asio::buffer(_data, n_to_send));
+            n_to_receive = filesize;
+        _ofile.write(_data.data(), n_to_receive);
+        int r = _socket.read_some(boost::asio::buffer(_data, n_to_receive));
         // cout <<this_thread::get_id()<< "SEND [" << n_to_send << "]" << "REC [" << r << "]"  << endl;
-        size -= r;
+        filesize -= r;
     }
-    _file.close();
+    _ofile.close();
     return true;
 }

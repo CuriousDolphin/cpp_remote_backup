@@ -174,13 +174,12 @@ void Session::handle_request() {
             if (boost::filesystem::exists(full_path)) { //does requested file exists?
                 _infile.open(full_path);
                 if (_infile.fail()) {
-                    cout << "FILE OPEN ERROR" << endl;
-
-                    error_response_sync(ERROR_COD.at(Server_error::FILE_CREATE_ERROR));
+                    cout << "FILE OPEN ERROR" << endl; //TODO manage error on client
+                    error_response_sync(ERROR_COD.at(Server_error::FILE_OPEN_ERROR));
                     return;
                 }
+                int len = boost::filesystem::file_size(path); //get file size
                 success_response_sync(); //send ok
-                int len = boost::filesystem::file_size(path);
                 send_file_chunked(full_path, path, len);
 
                 //all'interno read_and_save ma con write_async, uso outfile ma in lettura

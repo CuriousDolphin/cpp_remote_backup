@@ -38,7 +38,8 @@ enum class Server_error
     FILE_HASH_MISMATCH,
     FILE_ALREADY_EXISTS,
     FILE_DELETE_ERROR,
-    FILE_NOT_FOUND
+    FILE_NOT_FOUND,
+    FILE_OPEN_ERROR
 };
 
 const std::map<Server_error, int> ERROR_COD = {
@@ -51,7 +52,8 @@ const std::map<Server_error, int> ERROR_COD = {
         {Server_error::FILE_HASH_MISMATCH, 7},
         {Server_error::FILE_ALREADY_EXISTS, 8},
         {Server_error::FILE_DELETE_ERROR, 9},
-        {Server_error::FILE_NOT_FOUND, 10}
+        {Server_error::FILE_NOT_FOUND, 10},
+        {Server_error::FILE_OPEN_ERROR, 11}
 };
 
 #endif

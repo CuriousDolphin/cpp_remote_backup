@@ -42,6 +42,7 @@ private:
     boost::asio::io_context &io_context_;
     tcp::socket _socket;
     ifstream _file;
+    ofstream _ofile;
 
     std::string read_sync_n(int len);
     size_t do_write_str_sync(string str);
@@ -59,7 +60,7 @@ private:
 
     void read_chunked_snapshot_and_set(int len);
 
-    bool read_and_save_file(Node n);
+    bool read_and_save_file(Node n, int filesize);
 };
 
 #endif
