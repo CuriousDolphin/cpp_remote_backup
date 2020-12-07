@@ -20,7 +20,7 @@ Session::~Session() {
 
 void Session::read_request() {
     auto self(shared_from_this());
-
+    cout<<"========================[WAITING REQ]"<<endl;
     //std::size_t read  = _socket.read_some(boost::asio::buffer(_data, LEN_BUFF));
     //cout<<"READ REQUEST:"<<read<<endl;
     _socket.async_read_some(boost::asio::buffer(_data, LEN_BUFF),
@@ -37,7 +37,7 @@ void Session::read_request() {
 
 void Session::read_and_save_file(std::string const & effectivePath,std::string const & relativePath, int len, std::string const & reqHash) {
     auto self(shared_from_this());
-     std::cout<<" [READ] FILE LEN:"<<len<<std::endl;
+     //std::cout<<" [READ] FILE LEN:"<<len<<std::endl;
 
     if(len > 0)
     {
@@ -174,10 +174,12 @@ void Session::handle_request() {
                     int len = boost::filesystem::file_size(full_path); //get file size
                     success_response_sync(std::to_string(len)); //send ok - filesize
                     send_file_chunked(full_path, path, len);
+                    return;
                 }
                 else{
                     cout << "FILE DOES NOT EXIST IN FILESYSTEM!" << endl; //TODO manage error on client
                     error_response_sync(ERROR_COD.at(Server_error::FILE_NOT_FOUND));
+                    read_request();
                     return;
                 }
             }
@@ -311,7 +313,7 @@ void Session::handle_request() {
             break;
         }
     }
-    cout << "===================[END REQ "<< _user<<"]==================" << std::endl;
+    //cout << "===================[END REQ "<< _user<<"]==================" << std::endl;
 }
 
 
@@ -374,7 +376,7 @@ int Session::write_str_sync(std::string&& str) {
 
 void Session::send_file_chunked(std::string const & effectivePath,std::string const & relativePath, int len) {
     auto self(shared_from_this());
-    std::cout <<" [WRITE] FILE LEN:" << len << std::endl;
+    //std::cout <<" [WRITE] FILE LEN:" << len << std::endl;
 
     if(len > 0)
     {
@@ -387,7 +389,7 @@ void Session::send_file_chunked(std::string const & effectivePath,std::string co
         async_write(_socket, boost::asio::buffer(_data, len),
                                  [this, self,len,effectivePath,relativePath](std::error_code ec, std::size_t length){
                                     if (!ec) {
-                                        std::cout<<std::this_thread::get_id()<<" [READED] : ("<<length<<")"<<_data.data()<<std::endl;
+                                       // std::cout<<std::this_thread::get_id()<<" [READED] : ("<<length<<")"<<_data.data()<<std::endl;
 
                                         send_file_chunked(effectivePath,relativePath,len-length);
 

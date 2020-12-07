@@ -11,3 +11,7 @@ server/data
 server/data/*
 server/data/
 client/.vscode/settings.json
+server/redis/redis_data/
+server/redis/redis_data/*
+/server/redis/redis_data/*
+/server/redis/redis_data/appendonly.aof

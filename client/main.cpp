@@ -88,7 +88,7 @@ int main() {
                     case FileStatus::created: {
 
 
-                        string op_key = "PUT_" + node.toString();
+                        string op_key = node.toString();
                         if (!pending_operation.exist(op_key)) { //se non c'e' gia' una richiesta uguale in coda
                             cout << "================= FW { CREATED }: \n" << node.toString() << endl;
                             pending_operation.set(op_key, true);
@@ -100,7 +100,7 @@ int main() {
                     }
                         break;
                     case FileStatus::modified: {
-                        string op_key = "PUT_" + node.toString();
+                        string op_key =  node.toString();
                         if (!pending_operation.exist(op_key)) {
                             std::cout << "================= FW { MODIFIED }: " << node.toString() << '\n';
                             pending_operation.set(op_key, true);
@@ -113,7 +113,7 @@ int main() {
                         break;
                     case FileStatus::erased: {
 
-                        string op_key = "DELETE_" + node.toString() ;
+                        string op_key = node.toString() ;
                         if (!pending_operation.exist(op_key)) { //se non c'e' gia' una richiesta uguale in coda
                             std::cout << "================= FW { ERASED }: " << node.toString() << '\n';
                             pending_operation.set(op_key, true);
@@ -126,7 +126,7 @@ int main() {
                         // TODO ADD GET HERE
                     case FileStatus::missing: {
                         //string op_key = "DELETE_" + node.toString();
-                        string op_key = "GET_" + node.toString();
+                        string op_key =  node.toString();
                         if (!pending_operation.exist(op_key)) {
                             std::cout << "================= FW { MISSING }: " << node.toString() << '\n';
                             pending_operation.set(op_key, true);
@@ -138,7 +138,7 @@ int main() {
                     }
                     case FileStatus::untracked: {
 
-                        string op_key = "PUT_" + node.toString();
+                        string op_key =  node.toString();
                         if (!pending_operation.exist(op_key)) { //se non c'e' gia' una richiesta uguale in coda
                             std::cout << "================= FW { UNTRACKED} : " << node.toString() << '\n';
                             pending_operation.set(op_key, true);
