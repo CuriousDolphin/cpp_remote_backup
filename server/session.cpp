@@ -73,19 +73,13 @@ void Session::read_and_save_file(std::string const & effectivePath,std::string c
             std::cout << " [SAVED FILE] at ~" << effectivePath << std::endl;
 
             _db->save_user_file_hash(_user, relativePath, hash);
-
             /*   snapshot:ivan={
              *                  ../datadir/ivan/file1.txt:45cbf8aef38c570733b4594f345e710c
              *
              *              }
              *
              * */
-
-            string tmp = _db->get(effectivePath);
-            cout << tmp << endl;
             success_response_sync(hash);
-
-            // read_user_snapshot();
         }
 
         read_request();
@@ -169,29 +163,31 @@ void Session::handle_request() {
             }
             string path = params.at(1);
             string full_path = DATA_DIR + _user + path;
-            //TODO GET
-            //TODO exists in db?
-            if (boost::filesystem::exists(full_path)) { //does requested file exists?
-                _infile.open(full_path);
-                if (_infile.fail()) {
-                    cout << "FILE OPEN ERROR" << endl; //TODO manage error on client
-                    error_response_sync(ERROR_COD.at(Server_error::FILE_OPEN_ERROR));
+            if (_db->get_user_file_hash(_user, path) != ""){ //does requested file exists?
+                if (boost::filesystem::exists(full_path)) {
+                    _infile.open(full_path);
+                    if (_infile.fail()) {
+                        cout << "FILE OPEN ERROR!" << endl; //TODO manage error on client
+                        error_response_sync(ERROR_COD.at(Server_error::FILE_OPEN_ERROR));
+                        return;
+                    }
+                    int len = boost::filesystem::file_size(full_path); //get file size
+                    success_response_sync(std::to_string(len)); //send ok - filesize
+                    send_file_chunked(full_path, path, len);
+                }
+                else{
+                    cout << "FILE DOES NOT EXIST IN FILESYSTEM!" << endl; //TODO manage error on client
+                    error_response_sync(ERROR_COD.at(Server_error::FILE_NOT_FOUND));
                     return;
                 }
-                int len = boost::filesystem::file_size(path); //get file size
-                success_response_sync(); //send ok
-                send_file_chunked(full_path, path, len);
-
-                //all'interno read_and_save ma con write_async, uso outfile ma in lettura
-
             }
             else{
                 //TODO handle errors
-                std::cout << "FILE DOES NOT EXISTS!" << std::endl;
+                std::cout << "FILE DOES NOT EXISTS IND DB!" << std::endl;
 
                 error_response_sync(ERROR_COD.at(Server_error::FILE_NOT_FOUND));
+                read_request();
             }
-            read_request();
             break;
         }
 
@@ -380,20 +376,26 @@ void Session::send_file_chunked(std::string const & effectivePath,std::string co
     auto self(shared_from_this());
     std::cout <<" [WRITE] FILE LEN:" << len << std::endl;
 
-    if(len > 0) //prima volta che entra cosa succede??
+    if(len > 0)
     {
+        int length = 0;
+        if (len > LEN_BUFF)
+            length = LEN_BUFF;
+        else
+            length = len;
+        _infile.read(_data.data(), length);
         async_write(_socket, boost::asio::buffer(_data, len),
                                  [this, self,len,effectivePath,relativePath](std::error_code ec, std::size_t length){
                                     if (!ec) {
                                         std::cout<<std::this_thread::get_id()<<" [READED] : ("<<length<<")"<<_data.data()<<std::endl;
 
-                                        _infile.read(_data.data(), length);
                                         send_file_chunked(effectivePath,relativePath,len-length);
 
                                     } else
                                         std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
                                                   << " CODE " << ec.value() << std::endl;
                                 });
+
     }else{
 
         _infile.close();
@@ -403,15 +405,10 @@ void Session::send_file_chunked(std::string const & effectivePath,std::string co
             return;
         }
         else {
-            std::cout << " [SENT FILE] at ~" << effectivePath << std::endl;
+            std::cout << " [SENT FILE] ~" << effectivePath << std::endl;
 
-            //_db->save_user_file_hash(_user, relativePath, hash);
-
-            //string tmp = _db->get(effectivePath);
-            //cout << tmp << endl;
-            success_response_sync();
+            read_request();
         }
-        read_request();
     }
 
 }

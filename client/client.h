@@ -7,6 +7,7 @@
 #include "../shared/const.h"
 #include "../shared/job.h"
 #include "../shared/shared_map.h"
+#include "../shared/hasher.h"
 #include "node.h"
 #include "request.h"
 #include <boost/algorithm/string_regex.hpp>

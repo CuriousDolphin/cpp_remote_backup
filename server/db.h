@@ -23,6 +23,8 @@ public:
 
     bool delete_file_from_snapshot(const std::string &user, const std::string &path);
 
+    std::string get_user_file_hash(const std::string user,const std::string path);
+
 private:
     void connect();
     int port;
