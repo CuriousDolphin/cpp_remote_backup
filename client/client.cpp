@@ -6,8 +6,7 @@ client::client(boost::asio::io_context &io_context,
                const string name,
                const string pwd,
                shared_map<Node> *remote_snapshot,
-               shared_map<bool> *pending_operations
-              )
+               shared_map<bool> *pending_operations)
     : io_context_(io_context),
       _socket(io_context, tcp::endpoint(tcp::v4(), 4444)),
       _remote_snapshot(remote_snapshot),
@@ -104,6 +103,93 @@ void client::connect(const tcp::resolver::results_type &endpoints, const string 
                                });
 }
 
+void client::handle_request(Request req)
+{
+    vector<string> params; // parsed header params
+    vector<string> tmp;    // support
+    std::string res;
+    Node node = req.node;
+    switch (req.method)
+    {
+    case Method::PUT:
+    {
+        params.clear();
+        string str = "";
+        str += "PUT" + PARAM_DELIMITER + node.toPathSizeTimeHash() + REQUEST_DELIMITER;
+        do_write_str_sync(str); // send header request
+        params = read_header();
+        if (params.size() == 1 && params.at(0) == "OK") // se l'header di risposta e' ok mando il file
+        {
+            bool ris = send_file_chunked(node);
+            params.clear();
+            if (ris)
+            { // file sended successfull
+                handle_response(move(req));
+            }
+            else
+            { // some kind of error --> remove pending operation
+                _pending_operations->remove( req.node.toString());
+            }
+        }
+        if (params.size() == 2 && params.at(0) == "ERROR")
+        { // se header risposta è error gestisco secondo ERROR CODE
+            switch (std::stoi(params.at(1)))
+            { //cast code error in int
+            case 3:
+            { //WRONG_N_ARGS
+                std::cout << "WRONG NUMBER OF ARGUMENTS!" << std::endl;
+                break;
+            }
+            case 6:
+            { // FILE_CREATE_ERROR
+                std::cout << "FILE CREATE ERROR!" << std::endl;
+                break;
+            }
+            case 8:
+            { // FILE_ALREADY_EXISTS
+                //TODO update remote snapshot
+                _remote_snapshot->set(req.node.getAbsolutePath(), move(node));
+
+                std::cout << "FILE ALREADY EXISTS" << std::endl;
+                break;
+            }
+            default:
+                break;
+            }
+            _pending_operations->remove( req.node.toString());
+        }
+
+        break;
+    }
+    case Method::DELETE:
+    {
+        string str = "DELETE" + PARAM_DELIMITER + node.getAbsolutePath() + REQUEST_DELIMITER;
+        do_write_str_sync(str);
+        handle_response(move(req));
+        break;
+    }
+
+    case Method::GET:
+    {
+        string str = "GET" + PARAM_DELIMITER + node.getAbsolutePath() + REQUEST_DELIMITER;
+        do_write_str_sync(str);
+        handle_response(move(req));
+        break;
+    }
+    case Method::PATCH:
+        break;
+    case Method::SNAPSHOT:
+    {
+        string str = "SNAPSHOT" + REQUEST_DELIMITER;
+        do_write_str_sync(str);
+        handle_response(move(req));
+    }
+    break;
+
+    default:
+        break;
+    }
+}
 
 void client::handle_response(Request &&req)
 {
@@ -124,17 +210,20 @@ void client::handle_response(Request &&req)
             _remote_snapshot->set(req.node.getAbsolutePath(), move(node));
         }
 
-        if (params.size() == 2 && params.at(0) == "ERROR"){
-            switch (std::stoi(params.at(1))) { //cast code error in int
-                case 7: { // FILE_HASH_MISMATCH
-                    std::cout << "FILE HASH MISMATCH!" << std::endl;
-                    break;
-                }
-                default:
-                    break;
+        if (params.size() == 2 && params.at(0) == "ERROR")
+        {
+            switch (std::stoi(params.at(1)))
+            { //cast code error in int
+            case 7:
+            { // FILE_HASH_MISMATCH
+                std::cout << "FILE HASH MISMATCH!" << std::endl;
+                break;
+            }
+            default:
+                break;
             }
         }
-        _pending_operations->remove("PUT_"+req.node.toString());
+        _pending_operations->remove( req.node.toString());
     }
     break;
     case Method::DELETE:
@@ -145,22 +234,39 @@ void client::handle_response(Request &&req)
             string hash = params.at(1);
             _remote_snapshot->remove(req.node.getAbsolutePath());
         }
-        if (params.size() == 2 && params.at(0) == "ERROR"){
+        if (params.size() == 2 && params.at(0) == "ERROR")
+        {
             std::cout << "FILE DELETE ERROR" << std::endl;
         }
-        _pending_operations->remove("DELETE_"+req.node.toString());
+        _pending_operations->remove(req.node.toString());
     }
     break;
 
-    case Method::GET: // response params must be OK- ??? or ERROR-error code
+    case Method::GET: // response params must be OK-filesize or ERROR-error code
     {
-        if (params.size() == 2 && params.at(0) == "OK") { // file exists on server, start sending
-
+        if (params.size() == 2 && params.at(0) == "OK")
+        { // file exists on server, start receiving
+            int filesize = stoi(params.at(1));
+            bool ris = read_and_save_file(node, filesize);
+            if (ris)
+            {
+                // TO DO BETTER HANDLE ../
+                std::string hash = Hasher::getSHA("../" + node.getPath());
+                node.setLastHash(hash);
+                std::cout << "~ [FILE SAVED]: " << node.toString()<< std::endl;
+                _remote_snapshot->set(node.getAbsolutePath(), move(node));
+            }
+            else
+            {
+                std::cout << "ERROR ON FILE SAVING" << std::endl;
+            }
         }
-        if (params.size() == 2 && params.at(0) == "ERROR") { //file does not exists on server
-
+        if (params.size() == 2 && params.at(0) == "ERROR")
+        { //file does not exists on server
+            //TODO call DELETE on server
+            std::cout << "FILE NOT EXISTS ON SERVER!" << std::endl;
         }
-        _pending_operations->remove("PUT_"+req.node.toString());
+        _pending_operations->remove( req.node.toString());
     }
     break;
 
@@ -173,92 +279,13 @@ void client::handle_response(Request &&req)
             cout << " Number remote files: " << n_files << "\n dim payload: " << snapshot_size << endl;
             read_chunked_snapshot_and_set(snapshot_size);
         }
-        if (params.at(0) == "ERROR"){
+        if (params.at(0) == "ERROR")
+        {
             std::cout << "UNKNOWN ERROR DURING SNAPSHOT" << std::endl;
         }
         _pending_operations->remove("SNAPSHOT");
     }
     break;
-    }
-}
-
-void client::handle_request(Request req)
-{
-    vector<string> params; // parsed header params
-    vector<string> tmp;    // support
-    std::string res;
-    Node node = req.node;
-    switch (req.method)
-    {
-    case Method::PUT:
-    {
-        params.clear();
-        string str = "";
-        str += "PUT" + PARAM_DELIMITER + node.toPathSizeTimeHash() + REQUEST_DELIMITER;
-        do_write_str_sync(str); // send header request
-        params = read_header();
-        if (params.size() == 1 && params.at(0) == "OK") // se l'header di risposta e' ok mando il file
-        {
-            bool ris = send_file_chunked(node);
-            params.clear();
-            if (ris){ // file sended successfull
-                handle_response(move(req));
-            }
-            else{ // some kind of error --> remove pending operation
-                _pending_operations->remove("PUT_"+req.node.toString());
-            }
-        }
-        if (params.size() == 2 && params.at(0) == "ERROR"){ // se header risposta è error gestisco secondo ERROR CODE
-            switch (std::stoi(params.at(1))){ //cast code error in int
-                case 3:{ //WRONG_N_ARGS
-                    std::cout << "WRONG NUMBER OF ARGUMENTS!" << std::endl;
-                    break;
-                }
-                case 6:{ // FILE_CREATE_ERROR
-                    std::cout << "FILE CREATE ERROR!" << std::endl;
-                    break;
-                }
-                case 8:{ // FILE_ALREADY_EXISTS
-                    //TODO update remote snapshot
-                    _remote_snapshot->set(req.node.getAbsolutePath(), move(node));
-
-                    std::cout << "FILE ALREADY EXISTS" << std::endl;
-                    break;
-                }
-                default:
-                    break;
-            }
-            _pending_operations->remove("PUT_"+req.node.toString());
-        }
-
-        break;
-    }
-    case Method::DELETE:
-    {
-        string str = "DELETE" + PARAM_DELIMITER + node.getAbsolutePath() + REQUEST_DELIMITER;
-        do_write_str_sync(str);
-        handle_response(move(req));
-        break;
-    }
-
-    case Method::GET: {
-        string str ="GET" + PARAM_DELIMITER + node.getAbsolutePath() + REQUEST_DELIMITER;
-        do_write_str_sync(str);
-        handle_response(move(req));
-        break;
-    }
-    case Method::PATCH:
-        break;
-    case Method::SNAPSHOT:
-    {
-        string str = "SNAPSHOT" + REQUEST_DELIMITER;
-        do_write_str_sync(str);
-        handle_response(move(req));
-    }
-    break;
-
-    default:
-        break;
     }
 }
 
@@ -289,7 +316,7 @@ vector<string> client::read_header()
 
 bool client::send_file_chunked(Node n)
 {
-    cout << "[SENDING FILE]" << endl;
+    cout << "~ [SENDING FILE]" << endl;
     _file.open(n.getPath(), ios::out | ios::app | ios::binary);
     if (_file.fail())
     {
@@ -314,22 +341,23 @@ bool client::send_file_chunked(Node n)
     return true;
 }
 
-void client::read_chunked_snapshot_and_set(int len){
+void client::read_chunked_snapshot_and_set(int len)
+{
     int n_to_read;
-    int size=len;
+    int size = len;
 
     // read chunked
-    string tmp="";
-    while(size >0)
+    string tmp = "";
+    while (size > 0)
     {
         if (size > LEN_BUFF)
-            n_to_read = LEN_BUFF-1;
+            n_to_read = LEN_BUFF - 1;
         else
             n_to_read = size;
         _data.fill(0);
         int r = _socket.read_some(boost::asio::buffer(_data.data(), n_to_read));
-        if(r>0)
-            tmp+=_data.data();
+        if (r > 0)
+            tmp += _data.data();
         size -= r;
     }
 
@@ -338,8 +366,8 @@ void client::read_chunked_snapshot_and_set(int len){
     vector<string> lines; // support
     vector<string> arguments(2);
     boost::split_regex(lines, tmp, boost::regex(REQUEST_DELIMITER)); // split lines
-    cout<<"[NUMBER LINES] "<<lines.size()<<endl;
-    int i=0;
+    cout << "~ [NUMBER LINES] " << lines.size() << endl;
+    int i = 0;
     for (auto &line : lines)
     { // for each line split filepath and hash
         i++;
@@ -348,10 +376,40 @@ void client::read_chunked_snapshot_and_set(int len){
             boost::split_regex(arguments, line, boost::regex(PARAM_DELIMITER));
             path = arguments[0];
             hash = arguments[1];
-            cout << "\t\t ["<<i<<"]  " << path << " @ " << hash << endl;
+            cout << "\t\t [" << i << "]  " << path << " @ " << hash << endl;
             Node nod(path, false, hash);
             _remote_snapshot->set(path, move(nod));
         }
     }
+}
 
+bool client::read_and_save_file(Node n, int filesize)
+{
+    cout << "~ [RECEIVING FILE]" << endl;
+    _ofile.open("../" + n.getPath());
+    if (_ofile.fail())
+    {
+        cout << "failed to open file: " << n.getPath() << endl;
+        return false;
+    }
+    //_ofile.seekg(0, _ofile.beg);
+    int n_to_receive;
+    while (filesize > 0)
+    {
+        if (filesize > LEN_BUFF)
+            n_to_receive = LEN_BUFF;
+        else
+            n_to_receive = filesize;
+        int r = _socket.read_some(boost::asio::buffer(_data, n_to_receive));
+        _ofile.write(_data.data(), n_to_receive);
+        // cout <<this_thread::get_id()<< "SEND [" << n_to_send << "]" << "REC [" << r << "]"  << endl;
+        filesize -= r;
+    }
+    _ofile.close();
+    if (_ofile.fail())
+    {
+        cout << "FAILED RECEIVING FILE" << endl;
+        return false;
+    }
+    return true;
 }

@@ -7,6 +7,7 @@
 #include "../shared/const.h"
 #include "../shared/job.h"
 #include "../shared/shared_map.h"
+#include "../shared/hasher.h"
 #include "node.h"
 #include "request.h"
 #include <boost/algorithm/string_regex.hpp>
@@ -42,6 +43,7 @@ private:
     boost::asio::io_context &io_context_;
     tcp::socket _socket;
     ifstream _file;
+    ofstream _ofile;
 
     std::string read_sync_n(int len);
     size_t do_write_str_sync(string str);
@@ -58,6 +60,8 @@ private:
     string read_chunked_sync(int size);
 
     void read_chunked_snapshot_and_set(int len);
+
+    bool read_and_save_file(Node n, int filesize);
 };
 
 #endif

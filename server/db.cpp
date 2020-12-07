@@ -49,7 +49,7 @@ std::string Db::get(const std::string &key) {
     redis_client.sync_commit();
     future.wait();
     cpp_redis::reply reply = future.get();
-
+    std::cout << "-----------------"<< key << "-----------------" << std::endl;
     if (reply.is_error() || reply.is_null()) {
         return "";
     } else {
@@ -57,8 +57,6 @@ std::string Db::get(const std::string &key) {
         return reply.as_string();
 
     }
-
-
 }
 
 // { path: hash }
@@ -114,4 +112,18 @@ void Db::connect() {
                                  std::cout << "Redis_client connected to " << host << ":" << port << std::endl;
                              }
                          });
+}
+
+std::string Db::get_user_file_hash(const std::string user,const std::string path){
+    std::future<cpp_redis::reply> future = redis_client.hget("snapshot:" + user, path);
+    redis_client.sync_commit();
+    future.wait();
+    cpp_redis::reply reply = future.get();
+    if (reply.is_error() || reply.is_null()) {
+        return "";
+    } else {
+        std::cout<<"[redis]"<<" get file hash :"<< path << "@" << reply.as_string() << std::endl;
+        return reply.as_string();
+
+    }
 }

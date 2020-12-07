@@ -67,12 +67,15 @@ private:
     void do_write(std::size_t length);
     void write_str(std::string str);
     int write_str_sync(std::string&& str);
+    void send_file_chunked(std::string const & effectivePath,std::string const & relativePath, int len);
 
     tcp::socket _socket;
     std::ofstream _outfile;
+    std::ifstream _infile;
     array<char,LEN_BUFF> _data;
     Db *_db;
     std::string _user;
+    ifstream _file;
 
     bool delete_file(const string &effectivePath, const string &relativePath);
 
