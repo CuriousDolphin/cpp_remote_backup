@@ -25,6 +25,7 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action)
     {
         // Wait for "delay" milliseconds
         std::this_thread::sleep_for(delay);
+        std::cout << "[START MONITORING]" << std::endl;
         _remote_snapshot = remote_snapshot->get_map();
 
 
@@ -117,11 +118,6 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action)
                 }
             }
         }
-
-
-
-
-
     }
 }
 

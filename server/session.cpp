@@ -177,15 +177,14 @@ void Session::handle_request() {
                     return;
                 }
                 else{
-                    cout << "FILE DOES NOT EXIST IN FILESYSTEM!" << endl; //TODO manage error on client
+                    cout << "FILE DOES NOT EXIST IN FILESYSTEM!" << endl;
                     error_response_sync(ERROR_COD.at(Server_error::FILE_NOT_FOUND));
                     read_request();
                     return;
                 }
             }
             else{
-                //TODO handle errors
-                std::cout << "FILE DOES NOT EXISTS IND DB!" << std::endl;
+                std::cout << "FILE DOES NOT EXISTS IN DB!" << std::endl;
 
                 error_response_sync(ERROR_COD.at(Server_error::FILE_NOT_FOUND));
                 read_request();
@@ -202,7 +201,7 @@ void Session::handle_request() {
             }
             string path = params.at(1);
             string full_path = DATA_DIR + _user + path;
-            int len = std::stoi(params.at(2));
+            long int len = std::stol(params.at(2));
             int time = std::stoi(params.at(3));
             string hash = params.at(4);
 
