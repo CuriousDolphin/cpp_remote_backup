@@ -56,4 +56,11 @@ const std::map<Server_error, int> ERROR_COD = {
         {Server_error::FILE_OPEN_ERROR, 11}
 };
 
+static Server_error get_error_by_code(int error_code){
+    for(auto const& [key,val] : ERROR_COD){
+        if (val == error_code)
+            return key;
+    }
+    return Server_error::UNKNOWN_ERROR;
+}
 #endif

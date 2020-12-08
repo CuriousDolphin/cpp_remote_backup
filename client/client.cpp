@@ -246,7 +246,7 @@ void client::handle_response(Request &&req)
     {
         if (params.size() == 2 && params.at(0) == "OK")
         { // file exists on server, start receiving
-            int filesize = stoi(params.at(1));
+            long int filesize = stol(params.at(1));
             bool ris = read_and_save_file(node, filesize);
             if (ris)
             {
@@ -264,7 +264,10 @@ void client::handle_response(Request &&req)
         if (params.size() == 2 && params.at(0) == "ERROR")
         { //file does not exists on server
             //TODO call DELETE on server
-            std::cout << "FILE NOT EXISTS ON SERVER!" << std::endl;
+            if(get_error_by_code(std::stoi(params.at(1))) == Server_error::FILE_NOT_FOUND) {
+                _remote_snapshot->remove(req.node.getAbsolutePath());
+                std::cout << "FILE NOT EXISTS ON SERVER!" << std::endl;
+            }
         }
         _pending_operations->remove( req.node.toString());
     }
