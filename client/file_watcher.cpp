@@ -25,7 +25,7 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action)
     {
         // Wait for "delay" milliseconds
         std::this_thread::sleep_for(delay);
-        std::cout << "[START MONITORING]" << std::endl;
+        std::cout << "(FW RUNNING...)" << std::endl;
         _remote_snapshot = remote_snapshot->get_map();
 
 
@@ -44,42 +44,31 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action)
             }
         }
 
-        // check se un file e' presente sul fs remoto ma non sul locale
-        it = _remote_snapshot.begin();
-        while (it != _remote_snapshot.end())
-        {
-            //TODO .. work only if the directory is up one level
-            if (!std::filesystem::exists(".." + it->first))
-            {
-                action(it->second, FileStatus::missing); // it->first chiave
-                it = _remote_snapshot.erase(it);
-            }
-            else
-            {
-                it++;
-            }
-        }
+
 
         // Check if a file was created or modified
         for (auto &file : std::filesystem::recursive_directory_iterator(path_to_watch))
         {
             if (!file.is_directory())
             {
-                // FILE  ESISTENTE SUL REPO REMOTO e anche sul fs locale MA NON SU PATHS (probABILE RITORNO DELLA GET)
-                if(!local_snapshot_contains(file.path().string()) && remote_snapshot_contains(file.path().string())){
-                   // cout<<"[FILE  ESISTENTE SUL REPO REMOTO e anche sul fs locale MA NON SU PATHS]"<<endl;
-
-                    Node tmp = createNode(file);
-                    paths_.insert({file.path().string(), tmp});
-                }
+                //cout<<"["<<file.path().string() <<"]"<<endl;
                 std::filesystem::file_time_type time = std::filesystem::last_write_time(file);
                 long int current_file_last_write_time = to_timestamp(time);
+                // FILE  ESISTENTE SUL REPO REMOTO e anche sul fs locale MA NON SU PATHS (probABILE RITORNO DELLA GET)
+
+                if(!local_snapshot_contains(file.path().string()) && remote_snapshot_contains(file.path().string())){
+                    Node tmp = createNode(file);
+                    paths_.insert({file.path().string(), tmp});
+                    paths_[file.path().string()].setLastWriteTime(current_file_last_write_time);
+                }
+
+
                 // CREATION file creato sul fs locale
                 if (!local_snapshot_contains(file.path().string()) && !remote_snapshot_contains(file.path().string()))
                 {
                     Node tmp = createNode(file);
                     paths_.insert({file.path().string(), tmp});
-                    // paths_[file.path().string()] = current_file_last_write_time;
+                    paths_[file.path().string()].setLastWriteTime(current_file_last_write_time);
                     action(tmp, FileStatus::created);
                 }
 
@@ -89,9 +78,7 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action)
                     // FILE NON ESISTENTE SUL REPO REMOTO
                     if (!remote_snapshot_contains(file.path().string()))
                     {
-                        //cout<<"[FILE NON ESISTENTE SUL REPO REMOTO]"<<endl;
                         Node tmp = createNode(file);
-                        // paths_[file.path().string()] = current_file_last_write_time;
                         action(tmp, FileStatus::untracked);
                     }
 
@@ -100,12 +87,12 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action)
                     // File modification
                     if (paths_[file.path().string()].getLastWriteTime() != current_file_last_write_time)
                     {
-                        //cout<<"[FILE probabilmente modificato]"<<endl;
 
                         std::string old_hash = paths_[file.path().string()].getLastHash();
-                        cout<<old_hash<<endl;
-                        std::string new_hash = Hasher::getSHA(file.path().string());
 
+                        std::string new_hash = Hasher::getSHA(file.path().string());
+                        //cout<<"---"<<endl<<old_hash<<endl<<new_hash<<endl;
+                        cout<<"---"<<file.path().string()<<":"<<paths_[file.path().string()].getLastWriteTime() <<"@"<<current_file_last_write_time<<endl;
                         if (old_hash != new_hash)
                         { // se cambia l'hash la modifica e' veritiera
                             uintmax_t size = std::filesystem::file_size(file);
@@ -118,6 +105,21 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action)
                 }
             }
         }
+
+        // check se un file e' presente sul fs remoto ma non sul locale
+        it = _remote_snapshot.begin();
+        while (it != _remote_snapshot.end())
+        {
+            //TODO .. work only if the directory is up one level
+            if (!local_snapshot_contains(".." + it->first))
+            {
+                cout<<"~~ missing "<<it->first<<endl;
+                action(it->second, FileStatus::missing); // chiama la get file
+
+            }
+            it++;
+        }
+
     }
 }
 
