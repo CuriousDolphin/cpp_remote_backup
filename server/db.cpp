@@ -3,6 +3,7 @@
 //
 
 #include "db.h"
+#include "../shared/hasher.h"
 
 Db::Db(int port) : port(port) {
     connect();
@@ -16,19 +17,22 @@ void Db::set(const std::string &key, const std::string &value) {
 }
 
 void Db::save_user_file_hash(const std::string user,const std::string path,const std::string sha){
-    redis_client.hset("snapshot:"+user,path, sha);
+    std::string user_hash= Hasher::pswSHA(user);
+    redis_client.hset("snapshot:"+user_hash,path, sha);
     redis_client.sync_commit();
     std::cout<<"[redis]"<<" stored  "<<"snapshot:"+user<<std::endl<<path<<":"<<sha<<std::endl;
 }
 
 void Db::set_user_pwd(const std::string user,const std::string pwd){
-    redis_client.hset("users:",user, pwd);
+    std::string user_hash= Hasher::pswSHA(user);
+    redis_client.hset("users:",user_hash, pwd);
     redis_client.sync_commit();
-    std::cout<<"[redis]"<<" set user  "<<user<<std::endl;
+    std::cout<<"[redis]"<<" set user  "<<user << "@" << user_hash  <<std::endl;
 }
 
 std::string Db::get_user_pwd(const std::string &user) {
-    std::future<cpp_redis::reply> future = redis_client.hget("users:",user);
+    std::string user_hash= Hasher::pswSHA(user);
+    std::future<cpp_redis::reply> future = redis_client.hget("users:",user_hash);
     redis_client.sync_commit();
     future.wait();
     cpp_redis::reply reply = future.get();
@@ -61,8 +65,9 @@ std::string Db::get(const std::string &key) {
 
 // { path: hash }
 std::map<std::string, std::string>  Db::get_user_snapshot(const std::string &user) {
+    std::string user_hash= Hasher::pswSHA(user);
     std::cout<<"[redis]"<<" GET snapshot: "<<user<<std::endl;
-    std::future<cpp_redis::reply> future = redis_client.hgetall("snapshot:"+user);
+    std::future<cpp_redis::reply> future = redis_client.hgetall("snapshot:"+user_hash);
     redis_client.sync_commit();
     future.wait();
     cpp_redis::reply reply = future.get();
@@ -77,6 +82,7 @@ std::map<std::string, std::string>  Db::get_user_snapshot(const std::string &use
             if(array.size()>0){
                 for(int i=0;i<array.size()-1;i+=2){
                     tmp[array[i].as_string()]=array[i+1].as_string();
+
                 }
             }
         }
