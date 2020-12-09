@@ -63,4 +63,5 @@ static Server_error get_error_by_code(int error_code){
     }
     return Server_error::UNKNOWN_ERROR;
 }
+
 #endif

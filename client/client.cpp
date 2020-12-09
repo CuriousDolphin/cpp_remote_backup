@@ -133,29 +133,7 @@ void client::handle_request(Request req)
         }
         if (params.size() == 2 && params.at(0) == "ERROR")
         { // se header risposta è error gestisco secondo ERROR CODE
-            switch (std::stoi(params.at(1)))
-            { //cast code error in int
-            case 3:
-            { //WRONG_N_ARGS
-                std::cout << "WRONG NUMBER OF ARGUMENTS!" << std::endl;
-                break;
-            }
-            case 6:
-            { // FILE_CREATE_ERROR
-                std::cout << "FILE CREATE ERROR!" << std::endl;
-                break;
-            }
-            case 8:
-            { // FILE_ALREADY_EXISTS
-                //TODO update remote snapshot
-                _remote_snapshot->set(req.node.getAbsolutePath(), move(node));
-
-                std::cout << "FILE ALREADY EXISTS" << std::endl;
-                break;
-            }
-            default:
-                break;
-            }
+            handle_errors(std::stoi(params.at(1)), req, node);
             _pending_operations->remove( req.node.toString());
         }
 
@@ -212,16 +190,7 @@ void client::handle_response(Request &&req)
 
         if (params.size() == 2 && params.at(0) == "ERROR")
         {
-            switch (std::stoi(params.at(1)))
-            { //cast code error in int
-            case 7:
-            { // FILE_HASH_MISMATCH
-                std::cout << "FILE HASH MISMATCH!" << std::endl;
-                break;
-            }
-            default:
-                break;
-            }
+            handle_errors(std::stoi(params.at(1)), req, node);
         }
         _pending_operations->remove( req.node.toString());
     }
@@ -253,21 +222,17 @@ void client::handle_response(Request &&req)
                 // TO DO BETTER HANDLE ../
                 std::string hash = Hasher::getSHA("../" + node.getPath());
                 node.setLastHash(hash);
-                std::cout << "~ [FILE SAVED]: " << node.toString()<< std::endl;
+                std::cout << GREEN << "~ [FILE SAVED]: " << RESET << node.toString()<< std::endl;
                 _remote_snapshot->set(node.getAbsolutePath(), move(node));
             }
             else
             {
-                std::cout << "ERROR ON FILE SAVING" << std::endl;
+                std::cout << RED << "ERROR ON FILE SAVING" << RESET <<std::endl;
             }
         }
         if (params.size() == 2 && params.at(0) == "ERROR")
         { //file does not exists on server
-            //TODO call DELETE on server
-            if(get_error_by_code(std::stoi(params.at(1))) == Server_error::FILE_NOT_FOUND) {
-                _remote_snapshot->remove(req.node.getAbsolutePath());
-                std::cout << "FILE NOT EXISTS ON SERVER!" << std::endl;
-            }
+            handle_errors(std::stoi(params.at(1)), req, node);
         }
         _pending_operations->remove( req.node.toString());
     }
@@ -284,7 +249,7 @@ void client::handle_response(Request &&req)
         }
         if (params.at(0) == "ERROR")
         {
-            std::cout << "UNKNOWN ERROR DURING SNAPSHOT" << std::endl;
+            std::cout << RED << "UNKNOWN ERROR DURING SNAPSHOT" << RESET << std::endl;
         }
         _pending_operations->remove("SNAPSHOT");
     }
@@ -319,7 +284,7 @@ vector<string> client::read_header()
 
 bool client::send_file_chunked(Node n)
 {
-    cout << "~ [SENDING FILE]" << endl;
+    cout << GREEN << "~ [SENDING FILE]" << RESET << endl;
     _file.open(n.getPath(), ios::out | ios::app | ios::binary);
     if (_file.fail())
     {
@@ -388,7 +353,7 @@ void client::read_chunked_snapshot_and_set(int len)
 
 bool client::read_and_save_file(Node n, int filesize)
 {
-    cout << "~ [RECEIVING FILE]" << endl;
+    cout << GREEN << "~ [RECEIVING FILE]" << RESET << endl;
     _ofile.open("../" + n.getPath());
     if (_ofile.fail())
     {
@@ -411,8 +376,64 @@ bool client::read_and_save_file(Node n, int filesize)
     _ofile.close();
     if (_ofile.fail())
     {
-        cout << "FAILED RECEIVING FILE" << endl;
+        cout << RED << "FAILED RECEIVING FILE" << RESET << endl;
         return false;
     }
     return true;
+}
+
+void client::handle_errors(int error_code, Request req, Node node){
+    switch (get_error_by_code(error_code)){
+        case Server_error::WRONG_CREDENTIALS :{
+            std::cout << RED << "WRONG CREDENTIALS!" << RESET << std::endl;
+            break;
+        }
+        case Server_error::UNKNOWN_COMMAND :{
+            std::cout << RED << "UNKNOWN COMMAND!" << RESET <<std::endl;
+            break;
+        }
+        case Server_error::WRONG_N_ARGS :{
+            std::cout << RED << "WRONG NUMBER OF ARGUMENTS!" << RESET << std::endl;
+            break;
+        }
+        case Server_error::FILE_EXIST :{
+            std::cout << RED << "FILE EXIST!" << RESET << std::endl;
+            break;
+        }
+        case Server_error::UNKNOWN_ERROR :{
+            std::cout << RED << "UNKNOWN ERROR!" << RESET << std::endl;
+            break;
+        }
+        case Server_error::FILE_CREATE_ERROR :{
+            std::cout << RED << "FILE CREATE ERROR!" << RESET << std::endl;
+            break;
+        }
+        case Server_error::FILE_HASH_MISMATCH :{
+            std::cout << RED << "FILE HASH MISMATCH!" << RESET << std::endl;
+            break;
+        }
+        case Server_error::FILE_ALREADY_EXISTS :{
+            _remote_snapshot->set(req.node.getAbsolutePath(), move(node));
+            std::cout << RED << "FILE ALREADY EXISTS" << RESET << std::endl;
+            break;
+        }
+        case Server_error::FILE_DELETE_ERROR :{
+            std::cout << RED << "FILE DELETE ERROR" << RESET << std::endl;
+            break;
+        }
+        case Server_error::FILE_NOT_FOUND :{
+            _remote_snapshot->remove(req.node.getAbsolutePath());
+            std::cout << RED << "FILE NOT EXISTS ON SERVER!" << RESET << std::endl;
+            break;
+        }
+        case Server_error::FILE_OPEN_ERROR :{
+            std::cout << RED << "FILE OPEN ERROR!" << RESET << std::endl;
+            break;
+        }
+
+        default:
+            std::cout << RED << "UNKNOWN ERROR!" << RESET << std::endl;
+            break;
+    }
+
 }

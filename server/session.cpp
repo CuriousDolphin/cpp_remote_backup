@@ -227,7 +227,7 @@ void Session::handle_request() {
                 }
                 else{ //file already existent on server with different hash --> PATCH
                     bool check = delete_file(full_path, path);
-                    if (check) { // succesfull delete
+                    if (check) { // successful delete
                         create_dirs(full_path); // create dirs if not exists
                         _outfile.open(full_path);
                         if (_outfile.fail()) {
