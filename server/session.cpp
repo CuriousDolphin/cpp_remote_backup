@@ -23,6 +23,7 @@ void Session::read_request() {
     cout<<"========================[WAITING REQ]"<<endl;
     //std::size_t read  = _socket.read_some(boost::asio::buffer(_data, LEN_BUFF));
     //cout<<"READ REQUEST:"<<read<<endl;
+
     _socket.async_read_some(boost::asio::buffer(_data, LEN_BUFF),
                             [this, self](std::error_code ec, std::size_t length) {
                                 if (!ec) {
@@ -157,6 +158,13 @@ void Session::handle_request() {
         }
             break;
         case 2:  { //GET
+
+            if(!is_logged()){
+                error_response_sync(ERROR_COD.at(Server_error::USER_NOT_LOGGED));
+                return;
+            }
+
+
             if (params.size() != 2) {
                 error_response_sync(ERROR_COD.at(Server_error::WRONG_N_ARGS));
                 return;
@@ -195,6 +203,10 @@ void Session::handle_request() {
             break;
         case 3: // PUT
         {
+            if(!is_logged()){
+                error_response_sync(ERROR_COD.at(Server_error::USER_NOT_LOGGED));
+                return;
+            }
             if (params.size() < 4) {
                 error_response_sync(ERROR_COD.at(Server_error::WRONG_N_ARGS));
                 return;
@@ -251,11 +263,19 @@ void Session::handle_request() {
         break;
         case 4: // PATCH
         {
+            if(!is_logged()){
+                error_response_sync(ERROR_COD.at(Server_error::USER_NOT_LOGGED));
+                return;
+            }
             read_request();
             break;
         }
         case 5: // SNAPSHOT
         {
+            if(!is_logged()){
+                error_response_sync(ERROR_COD.at(Server_error::USER_NOT_LOGGED));
+                return;
+            }
             try {
                 std::map<string, string> files = _db->get_user_snapshot(_user);
 
@@ -298,6 +318,10 @@ void Session::handle_request() {
         }
         case 6: // DELETE
         {
+            if(!is_logged()){
+                error_response_sync(ERROR_COD.at(Server_error::USER_NOT_LOGGED));
+                return;
+            }
             string path = params.at(1);
             string full_path = DATA_DIR + _user + path;
             bool check = delete_file(full_path,path);
@@ -315,6 +339,16 @@ void Session::handle_request() {
     //cout << "===================[END REQ "<< _user<<"]==================" << std::endl;
 }
 
+
+bool Session::is_logged(){
+    if(_user.empty() ||  _user.length()==0){
+        std::cout<<"{ USER NOT LOGGED }"<<std::endl;
+        return false;
+    }else{
+        return true;
+    }
+
+}
 
 // delete file from fs and redis
 bool Session::delete_file(std::string const & effectivePath,std::string const & relativePath){

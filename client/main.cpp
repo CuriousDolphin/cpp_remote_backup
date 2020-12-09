@@ -8,7 +8,7 @@
 
 #include <boost/filesystem.hpp>
 
-const std::string path_to_watch = "../my_sync_folder";
+const std::string path_to_watch = "../my_sync_folder"; // c:/documenti/francesco/my_sync_folder
 const auto fw_delay = std::chrono::milliseconds(5000);
 const auto snapshot_delay = std::chrono::seconds(120);
 mutex m; // for print
@@ -25,7 +25,7 @@ int main() {
     boost::asio::ip::tcp::resolver resolver(io_context);
     auto endpoints = resolver.resolve("localhost", "5555");
     Jobs<Request> jobs;
-    client client(io_context, endpoints, "ivan", "mimmo", &remote_snapshot, &pending_operation);
+    client client(io_context, endpoints, "francesco", "mimmo", &remote_snapshot, &pending_operation);
 
     std::thread io_thread([&io_context, &jobs, &client]() {
         ostringstream oss;
@@ -86,8 +86,6 @@ int main() {
             if (!node.is_dir())
                 switch (status) {
                     case FileStatus::created: {
-
-
                         string op_key = node.toString();
                         if (!pending_operation.exist(op_key)) { //se non c'e' gia' una richiesta uguale in coda
                             cout << "================= FW { CREATED }: \n" << node.toString() << endl;

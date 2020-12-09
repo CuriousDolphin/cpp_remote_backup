@@ -15,24 +15,6 @@ client::client(boost::asio::io_context &io_context,
     connect(endpoints, name, pwd);
 }
 
-tcp::socket &client::socket()
-{
-    return _socket;
-}
-
-std::string client::read_sync_n(int len)
-{
-    boost::system::error_code ec;
-    _data.fill(0);
-    int n = _socket.read_some(boost::asio::buffer(_data.data(), len), ec);
-    cout << "~ [READED B]: " << n << " [EC]: " << ec.message() << endl;
-    if (n <= 0)
-    {
-        return "";
-    }
-
-    return _data.data();
-}
 
 std::string client::read_sync_until_delimiter()
 {
@@ -50,57 +32,24 @@ size_t client::do_write_str_sync(std::string str)
     return ris;
 }
 
-void client::read_response_login()
-{
-    string tmp;
-    boost::asio::async_read_until(_socket,
-                                  boost::asio::dynamic_buffer(_input_buffer), REQUEST_DELIMITER,
-                                  [this](std::error_code ec, std::size_t n) {
-                                      if (!ec)
-                                      {
-                                          std::cout << std::this_thread::get_id() << " READ_RESPONSE :" << _input_buffer.data()
-                                                    << std::endl;
-                                      }
-                                      else
-                                          std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
-                                                    << " CODE " << ec.value() << std::endl;
-                                  });
-}
+
 
 void client::login(const string name, const string pwd)
 {
-
     string tmp = "LOGIN" + PARAM_DELIMITER + name + PARAM_DELIMITER + pwd + REQUEST_DELIMITER;
-
-    boost::asio::async_write(_socket, boost::asio::buffer(tmp, tmp.length()),
-                             [this, tmp](std::error_code ec, std::size_t length) {
-                                 if (!ec)
-                                 {
-                                     cout << "[SEND  LOGIN]" << endl;
-                                     read_response_login();
-                                 }
-                                 else
-                                 {
-                                     std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
-                                               << " CODE " << ec.value() << std::endl;
-                                 }
-                             });
+   do_write_str_sync(tmp);
 }
 
 void client::connect(const tcp::resolver::results_type &endpoints, const string name, const string pwd)
 {
-    boost::asio::async_connect(_socket, endpoints,
-                               [this, name, pwd](boost::system::error_code ec, const tcp::endpoint &) {
-                                   if (!ec)
-                                   {
-                                       std::cout << this_thread::get_id() << "[CLIENT] CONNECTED TO SERVER" << std::endl;
-                                       login(name, pwd);
-                                   }
-                                   else
-                                   {
-                                       std::cout << "FAILED CONNECTION" << ec << std::endl;
-                                   }
-                               });
+    boost::system::error_code ec;
+    boost::asio::connect(_socket, endpoints,ec);
+    cout<<"[CLIENT_CONNECT_EC]:  "<<ec.value()<<endl;
+    login(name,pwd);
+    cout<<" {LOGIN RESPONSE} "<<endl;
+    std::vector<string> login_response = read_header();
+    cout<<"-------------------------------------------"<<endl;
+
 }
 
 void client::handle_request(Request req)

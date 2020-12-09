@@ -46,17 +46,14 @@ private:
     ifstream _file;
     ofstream _ofile;
 
-    std::string read_sync_n(int len);
     size_t do_write_str_sync(string str);
     bool send_file_chunked(Node n);
-    void read_response_login();
     void login(string name, string pwd);
     void connect(const tcp::resolver::results_type &endpoints, string name, string pwd); // called in costructor
     string read_sync_until_delimiter();
     static vector<string> extract_params(string &&str);
     vector<string> read_header();
     void handle_response(Request &&req);
-    string read_chunked_sync(int size);
     void read_chunked_snapshot_and_set(int len);
     bool read_and_save_file(Node n, int filesize);
     void handle_errors(int error_code, Request req, Node node);
