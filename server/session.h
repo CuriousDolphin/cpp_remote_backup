@@ -54,7 +54,6 @@ private:
     void read_request(); //async
     void read_and_save_file(std::string const & effectivePath,std::string const & relativePath, int len, std::string const & reqHash);
 
-    // TODO ADD HASHING
     bool login(const string &user, const string &pwd);
     void success_response_sync(); // reponse 'OK'
     void success_response_sync(std::string param); // 'OK param1'
@@ -80,6 +79,7 @@ private:
     bool delete_file(const string &effectivePath, const string &relativePath);
 
 
+    bool is_logged();
 };
 
 #endif

@@ -39,8 +39,8 @@ int main()
 
         //db.set_user_pwd("ivan","mimmo");
         db.set_user_pwd("ivan","82d13e09a23511bf7906910e238ad09c339be756ebb083c6d1d03434418e089f");
-
-
+        db.set_user_pwd("francesco","82d13e09a23511bf7906910e238ad09c339be756ebb083c6d1d03434418e089f");
+        db.set_user_pwd("alberto","82d13e09a23511bf7906910e238ad09c339be756ebb083c6d1d03434418e089f");
 
         //! or client.commit(); for asynchronous call
         boost::asio::io_context io_context;

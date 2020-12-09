@@ -9,7 +9,7 @@ FileWatcher::FileWatcher(shared_map<Node> *remote_snapshot, std::string path_to_
     for (auto &file : std::filesystem::recursive_directory_iterator(path_to_watch))
     {
         Node tmp = createNode(file);
-        // std::cout << tmp.toString() << std::endl;
+        std::cout << file.path().relative_path().string() << std::endl;
         paths_.insert({file.path().relative_path().string(), tmp});
     }
     std::cout << "----------------------------" << std::endl;
@@ -108,10 +108,10 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action)
 
         // check se un file e' presente sul fs remoto ma non sul locale
         it = _remote_snapshot.begin();
-        while (it != _remote_snapshot.end())
+        while (it != _remote_snapshot.end()) //  /my_sync_folder/file1.txt
         {
             //TODO .. work only if the directory is up one level
-            if (!local_snapshot_contains(".." + it->first))
+            if (!local_snapshot_contains(".." + it->first))  // c:/documenti/francesco +  /my_sync_folder/file1.txt
             {
                 cout<<"~~ missing "<<it->first<<endl;
                 action(it->second, FileStatus::missing); // chiama la get file
