@@ -294,43 +294,49 @@ bool client::send_file_chunked(Node n)
 
 void client::read_chunked_snapshot_and_set(int len)
 {
-    int n_to_read;
-    int size = len;
+    try {
+        int n_to_read;
+        int size = len;
 
-    // read chunked
-    string tmp = "";
-    while (size > 0)
-    {
-        if (size > LEN_BUFF)
-            n_to_read = LEN_BUFF - 1;
-        else
-            n_to_read = size;
-        _data.fill(0);
-        int r = _socket.read_some(boost::asio::buffer(_data.data(), n_to_read));
-        if (r > 0)
-            tmp += _data.data();
-        size -= r;
-    }
-
-    std::string path;
-    std::string hash;
-    vector<string> lines; // support
-    vector<string> arguments(2);
-    boost::split_regex(lines, tmp, boost::regex(REQUEST_DELIMITER)); // split lines
-    cout << "~ [NUMBER LINES] " << lines.size() << endl;
-    int i = 0;
-    for (auto &line : lines)
-    { // for each line split filepath and hash
-        i++;
-        if (!line.empty())
-        {
-            boost::split_regex(arguments, line, boost::regex(PARAM_DELIMITER));
-            path = arguments[0];
-            hash = arguments[1];
-            cout << "\t\t [" << i << "]  " << path << " @ " << hash << endl;
-            Node nod(path, false, hash);
-            _remote_snapshot->set(path, move(nod));
+        // read chunked
+        string tmp = "";
+        while (size > 0) {
+            if (size > LEN_BUFF)
+                n_to_read = LEN_BUFF - 1;
+            else
+                n_to_read = size;
+            _data.fill(0);
+            int r = _socket.read_some(boost::asio::buffer(_data.data(), n_to_read));
+            if (r > 0)
+                tmp += _data.data();
+            size -= r;
         }
+
+        std::string path;
+        std::string hash;
+        vector<string> lines; // support
+        vector<string> arguments(3);
+        boost::split_regex(lines, tmp, boost::regex(REQUEST_DELIMITER)); // split lines
+        cout << "~ [NUMBER LINES] " << lines.size() << endl;
+        int i = 0;
+        for (auto &line : lines) { // for each line split filepath and hash
+            i++;
+            if (!line.empty()) {
+                boost::split_regex(arguments, line, boost::regex(PARAM_DELIMITER));
+
+                if(arguments.size()==3){
+                    path = arguments[0];
+                    hash = arguments[1];
+                    cout << "\t\t [" << i << "]  " << path << " @ " << hash << endl;
+                    Node nod(path, false, hash);
+                    _remote_snapshot->set(path, move(nod));
+                }
+
+            }
+        }
+        cout << "[END]" << endl;
+    } catch (...) {
+        cout << "[errore snapshot read chunked]" << endl;
     }
 }
 
