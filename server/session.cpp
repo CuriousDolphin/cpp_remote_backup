@@ -186,6 +186,7 @@ void Session::handle_request() {
                 }
                 else{
                     cout << "FILE DOES NOT EXIST IN FILESYSTEM!" << endl;
+                    _db->delete_file_from_snapshot(_user,path);
                     error_response_sync(ERROR_COD.at(Server_error::FILE_NOT_FOUND));
                     read_request();
                     return;

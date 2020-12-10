@@ -1,11 +1,12 @@
 
 #include "file_watcher.h"
+#include <chrono>
 
 // Keep a record of files from the base directory and their last modification time
 FileWatcher::FileWatcher(shared_map<Node> *remote_snapshot, std::string path_to_watch, std::chrono::duration<int, std::milli> delay) : path_to_watch{path_to_watch},
                                                                                                                                        delay{delay}, remote_snapshot{remote_snapshot}
 {
-    //std::cout << "ACTUAL TREE " << std::endl;
+    std::cout << "[FW CREATING INDEXES] " << std::endl;
     for (auto &file : std::filesystem::recursive_directory_iterator(path_to_watch))
     {
         Node tmp = createNode(file);
@@ -15,20 +16,19 @@ FileWatcher::FileWatcher(shared_map<Node> *remote_snapshot, std::string path_to_
     std::cout << "----------------------------" << std::endl;
 }
 
-
-
 // Monitor "path_to_watch" for changes and in case of a change execute the user supplied "action" function
 void FileWatcher::start(const std::function<void(Node, FileStatus)> &action)
 {
     std::cout << "[START MONITORING]" << std::endl;
+
     while (running_)
     {
-        // Wait for "delay" milliseconds
         std::this_thread::sleep_for(delay);
-        std::cout << "(FW RUNNING...)" << std::endl;
+        std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+        std::unordered_map<std::string,bool> files_deleted;
         _remote_snapshot = remote_snapshot->get_map();
-
-
+        std::filesystem::file_time_type time;
+        long int current_file_last_write_time;
         // check se un file e' stato cancellato sul fs locale
         auto it = paths_.begin();
         while (it != paths_.end())
@@ -36,6 +36,7 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action)
             if (!std::filesystem::exists(it->first))
             {
                 action(it->second, FileStatus::erased); // it->first chiave
+                files_deleted.insert({it->first,true}); // mi serve per controllare che il file appena cancellato non emetta un "MISSING"
                 it = paths_.erase(it);
             }
             else
@@ -43,17 +44,15 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action)
                 it++;
             }
         }
-
-
-
         // Check if a file was created or modified
         for (auto &file : std::filesystem::recursive_directory_iterator(path_to_watch))
         {
-            if (!file.is_directory())
+
+            if (!file.is_directory() && !is_file_being_copied(file.path().string()))
             {
                 //cout<<"["<<file.path().string() <<"]"<<endl;
-                std::filesystem::file_time_type time = std::filesystem::last_write_time(file);
-                long int current_file_last_write_time = to_timestamp(time);
+                time = std::filesystem::last_write_time(file);
+                current_file_last_write_time = to_timestamp(time);
                 // FILE  ESISTENTE SUL REPO REMOTO e anche sul fs locale MA NON SU PATHS (probABILE RITORNO DELLA GET)
 
                 if(!local_snapshot_contains(file.path().string()) && remote_snapshot_contains(file.path().string())){
@@ -85,8 +84,9 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action)
 
 
                     // File modification
-                    if (paths_[file.path().string()].getLastWriteTime() != current_file_last_write_time)
+                    if (!areTsEqual(paths_[file.path().string()].getLastWriteTime() , current_file_last_write_time))
                     {
+                        // probabile file modificato
 
                         std::string old_hash = paths_[file.path().string()].getLastHash();
 
@@ -113,15 +113,40 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action)
             //TODO .. work only if the directory is up one level
             if (!local_snapshot_contains(".." + it->first))  // c:/documenti/francesco +  /my_sync_folder/file1.txt
             {
-                cout<<"~~ missing "<<it->first<<endl;
-                action(it->second, FileStatus::missing); // chiama la get file
+                auto el = files_deleted.find(".."+it->first);
+                if(el==files_deleted.end())// if file is not already deleted
+                    action(it->second, FileStatus::missing); // chiama la get file
 
             }
             it++;
         }
+        std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+        std::cout << "(fw wake up for "<<duration.count()  <<"ms )" << std::endl;
+    }
 
+}
+
+
+
+bool FileWatcher::is_file_being_copied(const boost::filesystem::path &filePath){
+    boost::filesystem::fstream fileStream(filePath, std::ios_base::in | std::ios_base::binary);
+
+    if(fileStream.is_open())
+    {
+        //We could open the file, so file is good
+        //So, file is not getting copied.
+        return false;
+    }
+    else
+    {
+        fileStream.close();
+        cout<<"{ "<<filePath<<" } is being copied,skipping scan."<<endl;
+        return true;
+        //Wait, the file is currently getting copied.
     }
 }
+
 
 Node FileWatcher::createNode(const std::filesystem::directory_entry &file)
 {
@@ -140,6 +165,11 @@ Node FileWatcher::createNode(const std::filesystem::directory_entry &file)
         return tmp;
     }
 }
+bool FileWatcher::areTsEqual(long int ts1,long int ts2){
+    if(std::abs(ts1-ts2)>20){
+        return false;
+    }return true;
+}
 
 // Check if "paths_" contains a given key
 // If your compiler supports C++20 use paths_.contains(key) instead of this function
@@ -147,14 +177,12 @@ bool FileWatcher::local_snapshot_contains(const std::string &key)
 {
     auto el = paths_.find(key);
     return el != paths_.end();
-    return el != paths_.end();
 }
 
 bool FileWatcher::remote_snapshot_contains(const std::string &key)
 {
-    // TODO MANAGE ..
     string tmp = key;
-
+    // TODO erase 0 2 toglie '..'
     auto el = _remote_snapshot.find(tmp.erase(0, 2));
     return el != _remote_snapshot.end();
 }

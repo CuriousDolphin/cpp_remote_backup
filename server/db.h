@@ -13,8 +13,6 @@ public:
     void set(const std::string &key, const std::string &value);
 
 
-    void save_user_file_hash(const std::string user,const std::string path,const std::string sha);
-    void set_user_pwd(const std::string user,const std::string pwd);
     std::string get_user_pwd(const std::string &user);
     std::string get(const std::string &key);
 
@@ -22,13 +20,18 @@ public:
     std::map<std::string, std::string>  get_user_snapshot(const std::string &user);
 
     bool delete_file_from_snapshot(const std::string &user, const std::string &path);
+    std::string get_user_file_hash(const std::string &user, const std::string &path);
 
-    std::string get_user_file_hash(const std::string user,const std::string path);
+    void save_user_file_hash(const std::string &user, const std::string &path, const std::string &sha);
+
+    void set_user_pwd(const std::string &user, const std::string &pwd);
+
 
 private:
     void connect();
     int port;
     cpp_redis::client redis_client;
+
 
 };
 

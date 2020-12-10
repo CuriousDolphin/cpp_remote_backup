@@ -25,7 +25,7 @@ int main() {
     boost::asio::ip::tcp::resolver resolver(io_context);
     auto endpoints = resolver.resolve("localhost", "5555");
     Jobs<Request> jobs;
-    client client(io_context, endpoints, "francesco", "mimmo", &remote_snapshot, &pending_operation);
+    client client(io_context, endpoints, "ivan", "mimmo", &remote_snapshot, &pending_operation);
 
     std::thread io_thread([&io_context, &jobs, &client]() {
         ostringstream oss;

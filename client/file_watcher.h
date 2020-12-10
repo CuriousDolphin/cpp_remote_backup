@@ -12,6 +12,7 @@
 #include "../shared/to_time_t.h"
 #include "../shared/shared_map.h"
 #include "../shared/const.h"
+#include <boost/filesystem/fstream.hpp>
 
 
 using namespace  std;
@@ -45,6 +46,10 @@ private:
     bool local_snapshot_contains(const string &key);
 
     bool remote_snapshot_contains(const string &key);
+
+    bool is_file_being_copied(const boost::filesystem::path &filePath);
+
+    bool areTsEqual(long ts1, long ts2);
 };
 
 #endif
