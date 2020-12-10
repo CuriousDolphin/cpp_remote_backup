@@ -3,14 +3,14 @@
 #include <chrono>
 
 // Keep a record of files from the base directory and their last modification time
-FileWatcher::FileWatcher(shared_map<Node> *remote_snapshot, std::string path_to_watch, std::chrono::duration<int, std::milli> delay) : path_to_watch{path_to_watch},
-                                                                                                                                       delay{delay}, remote_snapshot{remote_snapshot}
+FileWatcher::FileWatcher(shared_map<Node> *remote_snapshot,shared_map<bool> * pending_operation, const std::string& path_to_watch, std::chrono::duration<int, std::milli> delay) : path_to_watch{path_to_watch},
+                                                                                                                                       delay{delay}, remote_snapshot{remote_snapshot} ,pending_operation{pending_operation}
 {
     std::cout << "[FW CREATING INDEXES] " << std::endl;
     for (auto &file : std::filesystem::recursive_directory_iterator(path_to_watch))
     {
         Node tmp = createNode(file);
-        std::cout << file.path().relative_path().string() << std::endl;
+        std::cout <<" hashing "<< file.path().relative_path().string() << std::endl;
         paths_.insert({file.path().relative_path().string(), tmp});
     }
     std::cout << "----------------------------" << std::endl;
@@ -53,11 +53,18 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action)
                 //cout<<"["<<file.path().string() <<"]"<<endl;
                 time = std::filesystem::last_write_time(file);
                 current_file_last_write_time = to_timestamp(time);
-                // FILE  ESISTENTE SUL REPO REMOTO e anche sul fs locale MA NON SU PATHS (probABILE RITORNO DELLA GET)
+                bool isPendingOperation=pending_operation->exist(file.path().relative_path().string());
 
+
+
+                // FILE  ESISTENTE SUL REPO REMOTO e anche sul fs locale MA NON SU PATHS (probABILE RITORNO DELLA GET)
                 if(!local_snapshot_contains(file.path().string()) && remote_snapshot_contains(file.path().string())){
-                    Node tmp = createNode(file);
-                    paths_.insert({file.path().string(), tmp});
+
+
+                   // Node tmp = createNode(file);
+                   // paths_.insert({file.path().string(), tmp});
+                    paths_.insert({file.path().string(), _remote_snapshot.at(file.path().string().erase(0, 2))}); // TODO erase  0,2 toglie '..' solito discorso..
+
                     paths_[file.path().string()].setLastWriteTime(current_file_last_write_time);
                 }
 
@@ -77,8 +84,15 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action)
                     // FILE NON ESISTENTE SUL REPO REMOTO
                     if (!remote_snapshot_contains(file.path().string()))
                     {
-                        Node tmp = createNode(file);
+                        Node tmp;
+                        if(isPendingOperation){
+                            // operation on this file already run, no hash
+                             tmp = createNodeNoHash(file);
+                        }else{
+                             tmp = createNode(file);
+                        }
                         action(tmp, FileStatus::untracked);
+
                     }
 
 
@@ -92,9 +106,9 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action)
 
                         std::string new_hash = Hasher::getSHA(file.path().string());
                         //cout<<"---"<<endl<<old_hash<<endl<<new_hash<<endl;
-                        cout<<"---"<<file.path().string()<<":"<<paths_[file.path().string()].getLastWriteTime() <<"@"<<current_file_last_write_time<<endl;
+                        cout<<"--maybe modified check hash-"<<file.path().string()<<":"<<old_hash<<"@"<<new_hash<<endl;
                         if (old_hash != new_hash)
-                        { // se cambia l'hash la modifica e' veritiera
+                        {   // se cambia l'hash la modifica e' veritiera
                             uintmax_t size = std::filesystem::file_size(file);
                             paths_[file.path().string()].setSize(size);
                             paths_[file.path().string()].setLastWriteTime(current_file_last_write_time);
@@ -122,7 +136,7 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action)
         }
         std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
         std::chrono::duration duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-        std::cout << "(fw wake up for "<<duration.count()  <<"ms )" << std::endl;
+        std::cout << "(fw wake up for "<<duration.count()  <<"ms)" << std::endl;
     }
 
 }
@@ -147,6 +161,22 @@ bool FileWatcher::is_file_being_copied(const boost::filesystem::path &filePath){
     }
 }
 
+Node FileWatcher::createNodeNoHash(const std::filesystem::directory_entry &file)
+{
+    if (!std::filesystem::is_directory(file))
+    {
+        uintmax_t size = std::filesystem::file_size(file);
+        auto time = std::filesystem::last_write_time(file);
+        Node tmp(file.path().relative_path().string(), false, size, to_timestamp(time));
+        return tmp;
+    }
+    else
+    {
+        auto time = std::filesystem::last_write_time(file);
+        Node tmp(file.path().relative_path().string(), true, "", 0, to_timestamp(time));
+        return tmp;
+    }
+}
 
 Node FileWatcher::createNode(const std::filesystem::directory_entry &file)
 {

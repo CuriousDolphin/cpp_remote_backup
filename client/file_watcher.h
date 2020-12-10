@@ -21,13 +21,14 @@ public:
     std::string path_to_watch;
 
     shared_map<Node> * remote_snapshot;
+    shared_map<bool> * pending_operation;
 
 
     // Time interval at which we check the base folder for changes
     std::chrono::duration<int, std::milli> delay;
 
     // Keep a record of files from the base directory and their last modification time
-    FileWatcher(shared_map<Node> * remote_snapshot,std::string path_to_watch, std::chrono::duration<int, std::milli> delay);
+    FileWatcher(shared_map<Node> * remote_snapshot,shared_map<bool> * pending_operation,const std::string& path_to_watch, std::chrono::duration<int, std::milli> delay);
 
     // Monitor "path_to_watch" for changes and in case of a change execute the user supplied "action" function
     void start(const std::function<void(Node, FileStatus)> &action);
@@ -35,9 +36,10 @@ public:
 private:
     std::unordered_map<std::string, Node> _remote_snapshot;
     std::unordered_map<std::string, Node> paths_;
+
     bool running_ = true;
 
-    Node createNode(const std::filesystem::directory_entry &file);
+    static Node createNode(const std::filesystem::directory_entry &file);
 
     // Check if "paths_" contains a given key
     // If your compiler supports C++20 use paths_.contains(key) instead of this function
@@ -50,6 +52,8 @@ private:
     bool is_file_being_copied(const boost::filesystem::path &filePath);
 
     bool areTsEqual(long ts1, long ts2);
+
+    static Node createNodeNoHash(const filesystem::directory_entry &file);
 };
 
 #endif

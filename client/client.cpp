@@ -77,7 +77,7 @@ void client::handle_request(Request req)
             }
             else
             { // some kind of error --> remove pending operation
-                _pending_operations->remove( req.node.toString());
+                _pending_operations->remove( req.node.getPath());
             }
         }
         if (params.size() == 2 && params.at(0) == "ERROR")
@@ -105,7 +105,7 @@ void client::handle_request(Request req)
             default:
                 break;
             }
-            _pending_operations->remove( req.node.toString());
+            _pending_operations->remove( req.node.getPath());
         }
 
         break;
@@ -172,7 +172,7 @@ void client::handle_response(Request &&req)
                 break;
             }
         }
-        _pending_operations->remove( req.node.toString());
+        _pending_operations->remove( req.node.getPath());
     }
     break;
     case Method::DELETE:
@@ -187,7 +187,7 @@ void client::handle_response(Request &&req)
         {
             std::cout << "FILE DELETE ERROR" << std::endl;
         }
-        _pending_operations->remove(req.node.toString());
+        _pending_operations->remove(req.node.getPath());
     }
     break;
 
@@ -199,7 +199,6 @@ void client::handle_response(Request &&req)
             bool ris = read_and_save_file(node, filesize);
             if (ris)
             {
-                // TO DO BETTER HANDLE ../
                 std::string hash = Hasher::getSHA("../" + node.getPath());
                 node.setLastHash(hash);
                 std::cout << "~ [FILE SAVED]: " << node.toString()<< std::endl;
@@ -212,14 +211,13 @@ void client::handle_response(Request &&req)
         }
         if (params.size() == 2 && params.at(0) == "ERROR")
         { //file does not exists on server
-            //TODO call DELETE on serverv
 
             if(get_error_by_code(std::stoi(params.at(1))) == Server_error::FILE_NOT_FOUND) {
                 _remote_snapshot->remove(req.node.getAbsolutePath());
                 std::cout << "FILE NOT EXISTS ON SERVER!" << std::endl;
             }
         }
-        _pending_operations->remove( req.node.toString());
+        _pending_operations->remove( req.node.getPath());
     }
     break;
 
