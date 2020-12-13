@@ -44,9 +44,9 @@ void client::connect(const tcp::resolver::results_type &endpoints, const string 
 {
     boost::system::error_code ec;
     boost::asio::connect(_socket, endpoints,ec);
-    cout<<"[CLIENT_CONNECT_EC]:  "<<ec.value()<<endl;
+    cout<< BLUE << "[CLIENT_CONNECT_EC]:  "<< RESET <<ec.value()<<endl;
     login(name,pwd);
-    cout<<" {LOGIN RESPONSE} "<<endl;
+    cout<< BLUE <<" {LOGIN RESPONSE} "<< RESET << endl;
     std::vector<string> login_response = read_header();
     cout<<"-------------------------------------------"<<endl;
 
@@ -154,7 +154,7 @@ void client::handle_response(Request &&req)
         }
         if (params.size() == 2 && params.at(0) == "ERROR")
         {
-            std::cout << "FILE DELETE ERROR" << std::endl;
+            std::cout << RED << "FILE DELETE ERROR" << RESET << std::endl;
         }
         _pending_operations->remove(req.node.getPath());
     }
@@ -192,7 +192,7 @@ void client::handle_response(Request &&req)
         {
             int n_files = stoi(params.at(1));
             int snapshot_size = stoi(params.at(2));
-            cout << " Number remote files: " << n_files << "\n dim payload: " << snapshot_size << endl;
+            cout << BLUE <<" Number remote files: " << RESET << n_files << BLUE <<"\n dim payload: " << RESET << snapshot_size << endl;
             read_chunked_snapshot_and_set(snapshot_size);
         }
         if (params.at(0) == "ERROR")
@@ -236,7 +236,7 @@ bool client::send_file_chunked(Node n)
     _file.open(n.getPath(), ios::out | ios::app | ios::binary);
     if (_file.fail())
     {
-        cout << "failed to open file: " << n.getPath() << endl;
+        cout << RED << "failed to open file: " << RESET << n.getPath() << endl;
         return false;
     }
     _file.seekg(0, _file.beg);
@@ -301,7 +301,7 @@ void client::read_chunked_snapshot_and_set(int len)
         }
         cout << "[END]" << endl;
     } catch (...) {
-        cout << "[errore snapshot read chunked]" << endl;
+        cout << RED << "[errore snapshot read chunked]" << RESET <<endl;
     }
 }
 
@@ -311,7 +311,7 @@ bool client::read_and_save_file(Node n, int filesize)
     _ofile.open("../" + n.getPath());
     if (_ofile.fail())
     {
-        cout << "failed to open file: " << n.getPath() << endl;
+        cout << RED << "failed to open file: " << RESET << n.getPath() << endl;
         return false;
     }
     //_ofile.seekg(0, _ofile.beg);

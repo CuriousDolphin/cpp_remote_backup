@@ -28,6 +28,7 @@
 #include "db.h"
 #include "../shared/const.h"
 #include "../shared/hasher.h"
+#include "../shared/color.h"
 #include <boost/algorithm/string_regex.hpp>
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
@@ -75,11 +76,13 @@ private:
     Db *_db;
     std::string _user;
     ifstream _file;
+    ofstream log_file;
 
     bool delete_file(const string &effectivePath, const string &relativePath);
 
-
     bool is_logged();
+
+    void log(const std::string &arg1, const std::string &arg2,const std::string &message);
 };
 
 #endif
