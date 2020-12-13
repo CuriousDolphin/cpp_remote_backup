@@ -25,6 +25,7 @@ public:
     Node(){};
     Node(std::string path, bool isDir, std::string hash);
     Node(std::string path, bool isDir, std::string hash, uintmax_t size, long int last_time);
+    Node(std::string path, bool isDir,uintmax_t size, long int last_time);
     uintmax_t getSize() { return size; }
     void setSize(uintmax_t s) { size = s; }
     bool is_dir() { return isDir; }

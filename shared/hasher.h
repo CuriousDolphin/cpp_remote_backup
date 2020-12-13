@@ -37,17 +37,18 @@ std::uint32_t crc32(const std::string &fp)
 
 // Print the MD5 sum as hex-digits.
 
-class Hasher{
+class Hasher
+{
 public:
-     static std::string shaToString(unsigned char *sha)
-     {
-         std::ostringstream buffer;
-         for (unsigned i = 0; i < SHA256_DIGEST_LENGTH; i++)
-         {
-             buffer << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(sha[i]);
-         }
-         return buffer.str();
-     }
+    static std::string shaToString(unsigned char *sha)
+    {
+        std::ostringstream buffer;
+        for (unsigned i = 0; i < SHA256_DIGEST_LENGTH; i++)
+        {
+            buffer << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(sha[i]);
+        }
+        return buffer.str();
+    }
 
     static std::string getSHA(const std::string &fp)
     {
@@ -67,7 +68,8 @@ public:
         return shaToString(digest);
     }
 
-    static std::string pswSHA(const std::string psw) {
+    static std::string pswSHA(const std::string psw)
+    {
         std::string salt = "pdsproject201920";
         SHA256_CTX ctx;
         SHA256_Init(&ctx);
@@ -75,28 +77,26 @@ public:
         SHA256_Update(&ctx, salt.c_str(), salt.length()); //salting psw
         unsigned char hashedpsw[SHA256_DIGEST_LENGTH] = {};
         SHA256_Final(hashedpsw, &ctx);
-        std::cout << "Hashed password: " << shaToString(hashedpsw) << std::endl;
+        //std::cout << "Hashed password: " << shaToString(hashedpsw) << std::endl;
         return shaToString(hashedpsw);
     }
 
-    static std::string gen_random(const int len) {
+    static std::string gen_random(const int len)
+    {
 
         std::string tmp_s;
         static const char alphanum[] =
-                "0123456789"
-                "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                "abcdefghijklmnopqrstuvwxyz";
+            "0123456789"
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "abcdefghijklmnopqrstuvwxyz";
 
-        srand( (unsigned) time(NULL) * getpid());
+        srand((unsigned)time(NULL) * getpid());
 
         for (int i = 0; i < len; ++i)
             tmp_s += alphanum[rand() % (sizeof(alphanum) - 1)];
 
-
         return tmp_s;
-
     }
-
 };
 
 #endif

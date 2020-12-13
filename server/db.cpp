@@ -16,14 +16,14 @@ void Db::set(const std::string &key, const std::string &value) {
 
 }
 
-void Db::save_user_file_hash(const std::string user,const std::string path,const std::string sha){
+void Db::save_user_file_hash(const std::string& user,const std::string& path,const std::string& sha){
     std::string user_hash= Hasher::pswSHA(user);
     redis_client.hset("snapshot:"+user_hash,path, sha);
     redis_client.sync_commit();
     std::cout<<"[redis]"<<" stored  "<<"snapshot:"+user<<std::endl<<path<<":"<<sha<<std::endl;
 }
 
-void Db::set_user_pwd(const std::string user,const std::string pwd){
+void Db::set_user_pwd(const std::string& user,const std::string& pwd){
     std::string user_hash= Hasher::pswSHA(user);
     redis_client.hset("users:",user_hash, pwd);
     redis_client.sync_commit();
@@ -91,9 +91,11 @@ std::map<std::string, std::string>  Db::get_user_snapshot(const std::string &use
 
 }
 bool Db::delete_file_from_snapshot(const std::string &user,const std::string &path){
+    std::string user_hash= Hasher::pswSHA(user);
+
     std::vector<std::string> v;
     v.push_back(path);
-    std::future<cpp_redis::reply> future = redis_client.hdel("snapshot:"+user, v);
+    std::future<cpp_redis::reply> future = redis_client.hdel("snapshot:"+user_hash, v);
     redis_client.sync_commit();
     future.wait();
     cpp_redis::reply reply = future.get();
@@ -120,8 +122,10 @@ void Db::connect() {
                          });
 }
 
-std::string Db::get_user_file_hash(const std::string user,const std::string path){
-    std::future<cpp_redis::reply> future = redis_client.hget("snapshot:" + user, path);
+std::string Db::get_user_file_hash(const std::string& user,const std::string& path){
+    std::string user_hash= Hasher::pswSHA(user);
+
+    std::future<cpp_redis::reply> future = redis_client.hget("snapshot:" + user_hash, path);
     redis_client.sync_commit();
     future.wait();
     cpp_redis::reply reply = future.get();

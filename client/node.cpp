@@ -7,6 +7,9 @@ Node::Node(std::string path, bool isDir, std::string hash, uintmax_t size, long 
 {
     hash_histories.push_back(hash);
 }
+Node::Node(std::string path, bool isDir, uintmax_t size, long int last_time) : path(path), isDir(isDir), size(size), last_write_time(last_time)
+{
+}
 
 Node::Node(std::string path, bool isDir, std::string hash) : path(path), isDir(isDir)
 {

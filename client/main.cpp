@@ -25,7 +25,7 @@ int main() {
     boost::asio::ip::tcp::resolver resolver(io_context);
     auto endpoints = resolver.resolve("localhost", "5555");
     Jobs<Request> jobs;
-    client client(io_context, endpoints, "francesco", "mimmo", &remote_snapshot, &pending_operation);
+    client client(io_context, endpoints, "ivan", "mimmo", &remote_snapshot, &pending_operation);
 
     std::thread io_thread([&io_context, &jobs, &client]() {
         ostringstream oss;
@@ -72,10 +72,10 @@ int main() {
         print(oss);
         // Create a FileWatcher instance that will check the current folder for changes every 5 seconds
 
-        FileWatcher fw{&remote_snapshot, path_to_watch, fw_delay};
+        FileWatcher fw{&remote_snapshot, &pending_operation, path_to_watch, fw_delay};
         // Start monitoring a folder for changes and (in case of changes)
         // run a user provided lambda function
-        fw.start([&jobs, &remote_snapshot, &pending_operation](Node node, FileStatus status) -> void {
+        fw.start([&jobs, &remote_snapshot,&pending_operation](Node node, FileStatus status) -> void {
             ostringstream oss;
             // Process only regular files, all other file types are ignored
             //if(!std::filesystem::is_regular_file(std::filesystem::path(path_to_watch)) && status != FileStatus::erased) {
@@ -86,7 +86,7 @@ int main() {
             if (!node.is_dir())
                 switch (status) {
                     case FileStatus::created: {
-                        string op_key = node.toString();
+                        string op_key = node.getPath();
                         if (!pending_operation.exist(op_key)) { //se non c'e' gia' una richiesta uguale in coda
                             cout << "================= FW { CREATED }: \n" << node.toString() << endl;
                             pending_operation.set(op_key, true);
@@ -98,7 +98,7 @@ int main() {
                     }
                         break;
                     case FileStatus::modified: {
-                        string op_key =  node.toString();
+                        string op_key =  node.getPath();
                         if (!pending_operation.exist(op_key)) {
                             std::cout << "================= FW { MODIFIED }: " << node.toString() << '\n';
                             pending_operation.set(op_key, true);
@@ -111,7 +111,7 @@ int main() {
                         break;
                     case FileStatus::erased: {
 
-                        string op_key = node.toString() ;
+                        string op_key = node.getPath();
                         if (!pending_operation.exist(op_key)) { //se non c'e' gia' una richiesta uguale in coda
                             std::cout << "================= FW { ERASED }: " << node.toString() << '\n';
                             pending_operation.set(op_key, true);
@@ -124,7 +124,7 @@ int main() {
                         // TODO ADD GET HERE
                     case FileStatus::missing: {
                         //string op_key = "DELETE_" + node.toString();
-                        string op_key =  node.toString();
+                        string op_key =  node.getPath();
                         if (!pending_operation.exist(op_key)) {
                             std::cout << "================= FW { MISSING }: " << node.toString() << '\n';
                             pending_operation.set(op_key, true);
@@ -136,7 +136,7 @@ int main() {
                     }
                     case FileStatus::untracked: {
 
-                        string op_key =  node.toString();
+                        string op_key =  node.getPath();
                         if (!pending_operation.exist(op_key)) { //se non c'e' gia' una richiesta uguale in coda
                             std::cout << "================= FW { UNTRACKED} : " << node.toString() << '\n';
                             pending_operation.set(op_key, true);
