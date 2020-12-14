@@ -1,0 +1,11 @@
+version: "3"
+services:
+  client:
+    image: isnob46/remote_backup_client:latest
+    container_name: remote_backup_client
+    ports:
+      - "5555:4444"
+      - "6456:5555"
+    expose:
+      - "5555"
+    command: bash -c -s "ls -r -l && ./client"
