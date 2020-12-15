@@ -10,5 +10,5 @@ RUN cmake . && make
 
 FROM ubuntu:latest
 WORKDIR /remote_backup_client
-COPY --from=build /src ./
+COPY --from=build /src/client ./src/client
 
