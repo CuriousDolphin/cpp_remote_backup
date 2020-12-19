@@ -14,6 +14,8 @@ services:
   server:
     image: isnob46/remote_backup_server:latest
     container_name: remote_backup_server
+    volumes:
+      - ./server/data:/data
     expose:
       - "5555"
     ports:
