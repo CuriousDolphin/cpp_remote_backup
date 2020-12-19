@@ -11,7 +11,7 @@
 #include "node.h"
 #include "request.h"
 #include <boost/algorithm/string_regex.hpp>
-
+#include <boost/filesystem.hpp>
 using boost::asio::ip::tcp;
 using namespace std;
 const std::map<std::string, int> commands = {{"LOGIN", 1},
@@ -50,11 +50,15 @@ private:
     void login(string name, string pwd);
     void connect(const tcp::resolver::results_type &endpoints, string name, string pwd); // called in costructor
     string read_sync_until_delimiter();
-    static vector<string> extract_params(string &&str);
+     vector<string> extract_params(string &&str);
     vector<string> read_header();
     void handle_response(Request &&req);
     void read_chunked_snapshot_and_set(int len);
     bool read_and_save_file(Node n, int filesize);
+
+    void read_chunked_snapshot_and_set(int len, int n_lines);
+
+    void create_dirs(string path);
 };
 
 #endif

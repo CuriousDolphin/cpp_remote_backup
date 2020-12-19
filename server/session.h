@@ -59,7 +59,7 @@ private:
     void success_response_sync(std::string param); // 'OK param1'
     void success_response_sync(std::string param1,std::string param2);  // 'OK param1 param2'
     void error_response_sync(int cod_error); // 'ERROR COD_ERROR'
-    void handle_request();
+    void handle_request(const std::string & request);
     // create directories if doesnt  exist
     void create_dirs(string path);
     void read_user_snapshot();
@@ -74,12 +74,17 @@ private:
     array<char,LEN_BUFF> _data;
     Db *_db;
     std::string _user;
-    ifstream _file;
+    std::string _input_buffer;
+
 
     bool delete_file(const string &effectivePath, const string &relativePath);
 
 
     bool is_logged();
+
+    vector<string> extract_params(string &&str);
+
+    vector<string> extract_params(const string &str);
 };
 
 #endif
