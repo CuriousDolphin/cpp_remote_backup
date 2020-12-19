@@ -1,8 +1,24 @@
 version: "3"
+
 services:
-  client:
-    image: isnob46/remote_backup_client:latest
-    container_name: remote_backup_client
+  redis:
+    container_name: redis_prod
+    image: redis
+    command: "--appendonly yes"
+    ports:
+      - "6379:6379"
     volumes:
-      - ./:/my_sync_folder
-    command: bash -c -s "ls -r -l && ./src/client"
+      - ./server/redis/redis_data:/data
+      - ./server/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    restart: always
+  server:
+    image: isnob46/remote_backup_server:latest
+    container_name: remote_backup_server
+    expose:
+      - "5555"
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+
+    command: bash -c -s "ls -r -l && ./src/server"

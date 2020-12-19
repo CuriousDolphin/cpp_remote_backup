@@ -23,8 +23,18 @@ void Session::read_request() {
     cout<<"========================[WAITING REQ]"<<endl;
     //std::size_t read  = _socket.read_some(boost::asio::buffer(_data, LEN_BUFF));
     //cout<<"READ REQUEST:"<<read<<endl;
+    _input_buffer.clear();
+    boost::asio::async_read_until(_socket,boost::asio::dynamic_buffer(_input_buffer),REQUEST_DELIMITER, [this, self](std::error_code ec, std::size_t length) {
+        if (!ec) {
+            //  std::cout<<std::this_thread::get_id()<<" READ :"<<_data.data()<<"("<<length<<std::endl;
+            cout << "===================[START REQ "<< _user<<"]==================" << std::endl;
+            handle_request(move(_input_buffer.substr(0, length - REQUEST_DELIMITER.length())));
+        } else
+            std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
+                      << " CODE " << ec.value() << std::endl;
+    });
 
-    _socket.async_read_some(boost::asio::buffer(_data, LEN_BUFF),
+   /* _socket.async_read_some(boost::asio::buffer(_data, LEN_BUFF),
                             [this, self](std::error_code ec, std::size_t length) {
                                 if (!ec) {
                                     //  std::cout<<std::this_thread::get_id()<<" READ :"<<_data.data()<<"("<<length<<std::endl;
@@ -33,7 +43,7 @@ void Session::read_request() {
                                 } else
                                     std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
                                               << " CODE " << ec.value() << std::endl;
-                            });
+                            });*/
 }
 
 void Session::read_and_save_file(std::string const & effectivePath,std::string const & relativePath, int len, std::string const & reqHash) {
@@ -68,7 +78,7 @@ void Session::read_and_save_file(std::string const & effectivePath,std::string c
         if (reqHash != hash){
             delete_file(effectivePath, relativePath);
             error_response_sync(ERROR_COD.at(Server_error::FILE_HASH_MISMATCH));
-            std::cout << effectivePath + ": " + hash + " VS " + reqHash << std::endl;
+            std::cout << effectivePath + ": " + reqHash + " VS " + hash << std::endl;
         }
         else {
             std::cout << " [SAVED FILE] at ~" << effectivePath << std::endl;
@@ -114,17 +124,37 @@ void Session::error_response_sync(int cod_error){
     write_str_sync("ERROR"+PARAM_DELIMITER+to_string(cod_error)+REQUEST_DELIMITER);
 }
 
-void Session::handle_request() {
-    vector<string> params; // parsed values
-    vector<string> tmp1(4); // support
-    boost::split(tmp1, _data, boost::is_any_of(REQUEST_DELIMITER)); // take one line
-    boost::split_regex(params, tmp1[0], boost::regex(PARAM_DELIMITER)); // split by __
+vector<string> Session::extract_params(const string &str)
+{
+    vector<string> tmp; // parsed header params
+    vector<string> params;
+    boost::split_regex(tmp, str, boost::regex(PARAM_DELIMITER));
+    ostringstream oss;
+    oss << "~ [params received]:" << endl;
+    for (int i = 0; i < tmp.size(); i++)
+    {
+        if (!tmp[i].empty())
+        {
+            oss << "\t" << i << "\t" << tmp[i] << std::endl;
+            params.push_back(tmp[i]);
+        }
+    }
+    cout << oss.str();
+    return params;
+}
+
+void Session::handle_request(const std::string& request) {
+    vector<string> params  = extract_params(request) ; // parsed values
+    vector<string> tmp1; // support
+    //boost::split_regex(tmp1, request, boost::regex(REQUEST_DELIMITER)); // take one line
+
+    //boost::split_regex(params, tmp1[0], boost::regex(PARAM_DELIMITER)); // split by __
 
     //cout<<this_thread::get_id() << " REQUEST "<<"FROM "<<_user <<": "<< std::endl;
 
-    for (int i = 0; i < params.size(); i++) {
-        cout <<i<< "\t" << params[i] << std::endl;
-    }
+    //for (int i = 0; i < params.size(); i++) {
+      //  cout <<i<< "\t" << params[i] << std::endl;
+    //}
     cout << "======================================================" << std::endl;
     int action = -1;
     try {
@@ -290,7 +320,7 @@ void Session::handle_request() {
                     line+=it->first;
                     line+=PARAM_DELIMITER;
                     line+=it->second;
-                    line+=PARAM_DELIMITER;
+                    //line+=PARAM_DELIMITER;
                     line+=REQUEST_DELIMITER;
                     tot_len+=line.length();
                     lines_to_send.push_back(line);
@@ -404,7 +434,7 @@ void Session::write_str(std::string str) {
 }
 
 int Session::write_str_sync(std::string&& str) {
-    int byte_sent=_socket.write_some(boost::asio::buffer(str, str.size()));
+    int byte_sent=boost::asio::write(_socket,boost::asio::buffer(str, str.size()), boost::asio::transfer_all());
     return byte_sent;
 }
 

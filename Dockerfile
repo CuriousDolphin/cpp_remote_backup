@@ -1,14 +1,15 @@
 FROM isnob46/boost_gcc_ssl_builder:latest AS build
-ENV DEBIAN_FRONTEND=noninteractive
 
+## COPY PROJECT SOURCES
 COPY ./shared ./shared
 WORKDIR /src
-COPY ./client ./
+COPY ./server ./
 
-#CMD [ "ls -l" ]
+## BUILD PROJECT 
 RUN cmake . && make 
 
-FROM ubuntu:latest
-WORKDIR /remote_backup_client
-COPY --from=build /src/client ./src/client
-
+# copy bin to a new image
+FROM ubuntu:20.04
+WORKDIR /remote_backup_server
+EXPOSE 5555
+COPY --from=build /src/server ./src/server
