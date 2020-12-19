@@ -453,18 +453,18 @@ void Session::log(const std::string &arg1, const std::string &arg2,const std::st
     /*** console logging ***/
     //TODO create file first time? where?
     if (arg2 == "db") {
-        std::cout << YELLOW << "[" << arg2 << "]: " << RESET << message << std::endl;
+        std::cout << GREEN << _user << RESET << ": " << YELLOW << "[" << arg2 << "]: " << RESET << message << std::endl;
     }
     if (arg2 == "error") {
-        std::cout << RED << "[" << arg2 << "]: " << RESET << message << std::endl;
+        std::cout << GREEN << _user << RESET << ": " << RED << "[" << arg2 << "]: " << RESET << message << std::endl;
     }
     if (arg2 == "info") {
-        std::cout << BLUE << "[" << arg2 << "]: " << RESET << message << std::endl;
+        std::cout << GREEN << _user << RESET << ": " << BLUE << "[" << arg2 << "]: " << RESET << message << std::endl;
     }
     /*** file logging ***/
     log_file.open("../log.txt", ios::out | ios::app);
     if (log_file.is_open()) {
-        log_file << "[" << arg2 << "]: " << message << "\n";
+        log_file << _user << ": " << "[" << arg2 << "]: " << message << "\n";
         log_file.close();
     }
     else
