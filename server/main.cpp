@@ -48,7 +48,9 @@ int main()
         std::vector<std::thread> threads;
         for(int n = 0; n < NUM_THREADS; ++n)
             threads.emplace_back([&io_context](){
-                std::cout<<"START  THREAD"<< std::this_thread::get_id()<<std::endl;
+                std::stringstream ss ;
+                ss << "START THREAD " << std::this_thread::get_id();
+                Session::log("Server", "info", ss.str());
                 io_context.run();
             });
 
@@ -56,7 +58,9 @@ int main()
         {
             if(thread.joinable())
             {
-                std::cout<<"JOINED  THREAD"<<thread::id()<<std::endl;
+                std::stringstream ss ;
+                ss << "JOINED THREAD " << std::this_thread::get_id();
+                Session::log("Server", "info", ss.str());
                 thread.join();
             }
         }
@@ -67,7 +71,9 @@ int main()
     }
     catch (std::exception& e)
     {
-        std::cerr << "Exception: " << e.what() << "\n";
+        std::stringstream ss ;
+        ss << "Exception: " << e.what();
+        Session::log("Server", "error", ss.str());
     }
 
     return 0;

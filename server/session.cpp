@@ -6,7 +6,9 @@
 
 Session::Session(tcp::socket socket, Db *db)
         : _socket(std::move(socket)), _user(""), _db(db) {
-    cout << " new session " << this_thread::get_id() << endl;
+    std::stringstream ss;
+    ss << this_thread::get_id() <<" NEW SESSION";
+    Session::log("Server", "info", ss.str());
 }
 
 void Session::start() {
@@ -480,22 +482,30 @@ void Session::send_file_chunked(std::string const & effectivePath,std::string co
 }
 
 void Session::log(const std::string &arg1, const std::string &arg2,const std::string &message){ //move(message)
+    std::ofstream log_file;
     /*** console logging ***/
-    //TODO create file first time? where?
     if (arg2 == "db") {
-        std::cout << GREEN << _user << RESET << ": " << YELLOW << "[" << arg2 << "]: " << RESET << message << std::endl;
+        std::cout << GREEN << arg1 << RESET << ": " << YELLOW << "[" << arg2 << "] " << RESET << message << std::endl;
     }
     if (arg2 == "error") {
-        std::cout << GREEN << _user << RESET << ": " << RED << "[" << arg2 << "]: " << RESET << message << std::endl;
+        std::cout << GREEN << arg1 << RESET << ": " << RED << "[" << arg2 << "] " << RESET << message << std::endl;
     }
     if (arg2 == "info") {
-        std::cout << GREEN << _user << RESET << ": " << BLUE << "[" << arg2 << "]: " << RESET << message << std::endl;
+        std::cout << GREEN << arg1 << RESET << ": " << BLUE << "[" << arg2 << "] " << RESET << message << std::endl;
     }
+    /*if (arg2 == "server") {
+        std::cout << BLUE << "[" << arg2 << "]: " << RESET << message << std::endl;
+    }*/
     /*** file logging ***/
-    log_file.open("../log.txt", ios::out | ios::app);
+    log_file.open("../../log.txt", ios::out | ios::app);
     if (log_file.is_open()) {
-        log_file << _user << ": " << "[" << arg2 << "]: " << message << "\n";
-        log_file.close();
+        /*if (arg2 == "server") {
+            log_file << "[" << arg2 << "]: " << message << "\n";
+            log_file.close();
+        }
+        else{*/
+            log_file << arg1 << ": " << "[" << arg2 << "] " << message << "\n";
+            log_file.close();
     }
     else
         std::cout << RED << "Error during logging on file!"<< RESET << std::endl;

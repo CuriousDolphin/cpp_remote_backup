@@ -1,7 +1,7 @@
 //
 // Created by isnob on 24/09/2020.
 //
-
+#pragma once
 #ifndef SERVER_SESSION_H
 #define SERVER_SESSION_H
 
@@ -51,6 +51,9 @@ public:
     void start();
     ~Session();
 
+    static void log(const std::string &arg1, const std::string &arg2,const std::string &message);
+
+
 private:
     void read_request(); //async
     void read_and_save_file(std::string const & effectivePath,std::string const & relativePath, int len, std::string const & reqHash);
@@ -75,8 +78,7 @@ private:
     array<char,LEN_BUFF> _data;
     Db *_db;
     std::string _user;
-    ifstream _file;
-    ofstream log_file;
+    std::ifstream _file;
     std::string _input_buffer;
 
 
@@ -84,8 +86,7 @@ private:
 
     bool is_logged();
 
-    void log(const std::string &arg1, const std::string &arg2,const std::string &message);
-    bool is_logged();
+
 
     vector<string> extract_params(string &&str);
 
