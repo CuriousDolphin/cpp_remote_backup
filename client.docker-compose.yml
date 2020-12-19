@@ -1,0 +1,8 @@
+version: "3"
+services:
+  client:
+    image: isnob46/remote_backup_client:latest
+    container_name: remote_backup_client
+    volumes:
+      - ./:/my_sync_folder
+    command: bash -c -s "ls -r -l && ./src/client"

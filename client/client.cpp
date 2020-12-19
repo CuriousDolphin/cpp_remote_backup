@@ -21,8 +21,13 @@ std::string client::read_sync_until_delimiter()
     _input_buffer.clear();
     boost::system::error_code ec;
     int n = boost::asio::read_until(_socket, boost::asio::dynamic_buffer(_input_buffer), REQUEST_DELIMITER, ec);
-    cout << "~ [READED B]: " << n << " [EC]: " << ec.message() << endl;
-    return _input_buffer.substr(0, n - REQUEST_DELIMITER.length());
+    std::string res=_input_buffer.substr(0, n - REQUEST_DELIMITER.length());
+    _input_buffer=_input_buffer.substr(n ,_input_buffer.length() - REQUEST_DELIMITER.length());
+
+    cout << " ~ [HEADER B]: " << n <<"[DATA]"<<res<< " [EC]: " << ec.message() << endl;
+    if(_input_buffer.length() > 1)
+        cout<<" ~ [BUFFER RESIDUO] "<<_input_buffer.length() <<endl;
+    return res;
 }
 
 size_t client::do_write_str_sync(std::string str)
@@ -192,8 +197,8 @@ void client::handle_response(Request &&req)
         {
             int n_files = stoi(params.at(1));
             int snapshot_size = stoi(params.at(2));
-            cout << BLUE <<" Number remote files: " << RESET << n_files << BLUE <<"\n dim payload: " << RESET << snapshot_size << endl;
-            read_chunked_snapshot_and_set(snapshot_size);
+            cout << " Number remote files: " << n_files << "\n dim payload: " << snapshot_size << endl;
+            read_chunked_snapshot_and_set(snapshot_size,n_files);
         }
         if (params.at(0) == "ERROR")
         {
@@ -211,10 +216,10 @@ vector<string> client::extract_params(string &&str)
     vector<string> params;
     boost::split_regex(tmp, str, boost::regex(PARAM_DELIMITER));
     ostringstream oss;
-    oss << "~ [params received]:" << endl;
+    oss << " ~ [params received]:" <<endl;
     for (int i = 0; i < tmp.size(); i++)
     {
-        if (tmp[i] != "")
+        if (!tmp[i].empty())
         {
             oss << "\t" << i << "\t" << tmp[i] << std::endl;
             params.push_back(tmp[i]);
@@ -257,23 +262,46 @@ bool client::send_file_chunked(Node n)
     return true;
 }
 
-void client::read_chunked_snapshot_and_set(int len)
+void client::read_chunked_snapshot_and_set(int len,int n_lines)
 {
     try {
+        cout<<" ~ [START READ SNAPSHOT CHUNKED]"<<endl;
         int n_to_read;
         int size = len;
 
-        // read chunked
         string tmp = "";
+        if(_input_buffer.size()>0){ // ci sono ancora dati dalla lettura dell-header
+            size-=_input_buffer.size();
+            tmp+=_input_buffer.data();
+            cout<<"   [ RESIDUO TROVATO ] "<<endl;
+        }
+
+        // read chunked
+
+
+
+
+
         while (size > 0) {
+
+
             if (size > LEN_BUFF)
                 n_to_read = LEN_BUFF - 1;
             else
                 n_to_read = size;
             _data.fill(0);
-            int r = _socket.read_some(boost::asio::buffer(_data.data(), n_to_read));
+
+            boost::system::error_code ec;
+
+
+            //cout<<" ~ n to r:"<<n_to_read<<endl;
+
+            ssize_t r = _socket.read_some(boost::asio::buffer(_data.data(), n_to_read));
+            cout<<" ~ ["<<r<<"]/"<<n_to_read<<" [EC]: "<<ec.value()<<endl;
             if (r > 0)
-                tmp += _data.data();
+                tmp += _data.data();// _data.data();
+            else
+                break;
             size -= r;
         }
 
@@ -289,7 +317,7 @@ void client::read_chunked_snapshot_and_set(int len)
             if (!line.empty()) {
                 boost::split_regex(arguments, line, boost::regex(PARAM_DELIMITER));
 
-                if(arguments.size()==3){
+                if(arguments.size()==2){
                     path = arguments[0];
                     hash = arguments[1];
                     cout << "\t\t [" << i << "]  " << path << " @ " << hash << endl;
@@ -308,11 +336,19 @@ void client::read_chunked_snapshot_and_set(int len)
 bool client::read_and_save_file(Node n, int filesize)
 {
     cout << GREEN << "~ [RECEIVING FILE]" << RESET << endl;
+    // TO DO HANDLE ../
+    create_dirs("../" + n.getPath());
     _ofile.open("../" + n.getPath());
     if (_ofile.fail())
     {
         cout << RED << "failed to open file: " << RESET << n.getPath() << endl;
         return false;
+    }
+
+    if(_input_buffer.size()>0){ // ci sono ancora dati dalla lettura dell-header
+        filesize-=_input_buffer.size();
+        _ofile.write(_input_buffer.data(), _input_buffer.size());
+        cout<<"   [ RESIDUO TROVATO ] "<<endl;
     }
     //_ofile.seekg(0, _ofile.beg);
     int n_to_receive;
@@ -322,8 +358,12 @@ bool client::read_and_save_file(Node n, int filesize)
             n_to_receive = LEN_BUFF;
         else
             n_to_receive = filesize;
-        int r = _socket.read_some(boost::asio::buffer(_data, n_to_receive));
-        _ofile.write(_data.data(), n_to_receive);
+        boost::system::error_code ec;
+
+        int r = _socket.read_some(boost::asio::buffer(_data, n_to_receive),ec);
+       // int r = _socket.read_some(boost::asio::buffer(_data, n_to_receive),&ec);
+        //cout<<"READED: "<<r<<"[ec]: "<<ec.value()<<endl;
+        _ofile.write(_data.data(), r);
         // cout <<this_thread::get_id()<< "SEND [" << n_to_send << "]" << "REC [" << r << "]"  << endl;
         filesize -= r;
     }
@@ -391,3 +431,15 @@ void client::handle_errors(int error_code, Request req, Node node){
     }
 
 }
+
+// create directories if doesnt  exist
+void client::create_dirs(string path){
+    try {
+        boost::filesystem::path dirPath(path);
+        boost::filesystem::create_directories(dirPath.parent_path());
+    }
+    catch(const boost::filesystem::filesystem_error& err) {
+        std::cerr << err.what() << std::endl;
+    }
+}
+
