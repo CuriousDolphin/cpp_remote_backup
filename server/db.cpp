@@ -14,8 +14,9 @@ void Db::set(const std::string &key, const std::string &value)
 {
     redis_client.set(key, value);
     redis_client.sync_commit();
-    std::cout << "[redis]"
-              << " stored key: " << key << std::endl;
+    std::stringstream ss ;
+    ss << " stored key: " << key ;
+    Db::log("Server", "db", ss.str());
 }
 
 void Db::save_user_file_hash(const std::string &user, const std::string &path, const std::string &sha)
@@ -23,9 +24,10 @@ void Db::save_user_file_hash(const std::string &user, const std::string &path, c
     std::string user_hash = Hasher::pswSHA(user);
     redis_client.hset("snapshot:" + user_hash, path, sha);
     redis_client.sync_commit();
-    std::cout << " stored  "
-              << "snapshot:" + user << std::endl
-              << path << ":" << sha << std::endl;
+    std::stringstream ss ;
+    ss << " stored  " << "snapshot:" + user << std::endl
+       << path << ":" << sha ;
+    Db::log("Server", "db", ss.str());
 }
 
 void Db::set_user_pwd(const std::string &user, const std::string &pwd)
@@ -158,7 +160,6 @@ void Db::connect()
 std::string Db::get_user_file_hash(const std::string &user, const std::string &path)
 {
     std::string user_hash = Hasher::pswSHA(user);
-
     std::future<cpp_redis::reply> future = redis_client.hget("snapshot:" + user_hash, path);
     redis_client.sync_commit();
     future.wait();
@@ -169,8 +170,9 @@ std::string Db::get_user_file_hash(const std::string &user, const std::string &p
     }
     else
     {
-        std::cout << "[redis]"
-                  << " get file hash :" << path << "@" << reply.as_string() << std::endl;
+        std::stringstream ss ;
+        ss << " get file hash :" << path << "@" << reply.as_string() ;
+        Db::log("Server", "db", ss.str());
         return reply.as_string();
     }
 }
