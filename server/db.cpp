@@ -25,9 +25,8 @@ void Db::save_user_file_hash(const std::string &user, const std::string &path, c
     redis_client.hset("snapshot:" + user_hash, path, sha);
     redis_client.sync_commit();
     std::stringstream ss ;
-    ss << " stored  " << "snapshot:" + user << std::endl
-       << path << ":" << sha ;
-    Db::log("Server", "db", ss.str());
+    ss << " stored snapshot" << std::endl << path << ":" << sha ;
+    Db::log(user, "db", ss.str());
 }
 
 void Db::set_user_pwd(const std::string &user, const std::string &pwd)
@@ -55,8 +54,8 @@ std::string Db::get_user_pwd(const std::string &user)
     else
     {
         std::stringstream ss ;
-        ss << " get user pwd: " << user ;
-        Db::log("Server", "db", ss.str());
+        ss << " get user pwd ";
+        Db::log(user, "db", ss.str());
         return reply.as_string();
     }
 }
@@ -86,8 +85,8 @@ std::map<std::string, std::string> Db::get_user_snapshot(const std::string &user
 {
     std::string user_hash = Hasher::pswSHA(user);
     std::stringstream ss ;
-    ss << " GET snapshot: " << user ;
-    Db::log("Server", "db", ss.str());
+    ss << " GET snapshot ";
+    Db::log(user, "db", ss.str());
     std::future<cpp_redis::reply> future = redis_client.hgetall("snapshot:" + user_hash);
     redis_client.sync_commit();
     future.wait();
@@ -134,7 +133,7 @@ bool Db::delete_file_from_snapshot(const std::string &user, const std::string &p
         return false;
     }
     ss << " DELETE FILE " << path << " RES:" << reply.as_integer();
-    Db::log("Server", "db", ss.str());
+    Db::log(user, "db", ss.str());
     if (reply.is_integer() && reply.as_integer() != 0)
         return true;
     return false;
@@ -181,13 +180,13 @@ void Db::log(const std::string &arg1, const std::string &arg2,const std::string 
     std::ofstream log_file;
     /*** console logging ***/
     if (arg2 == "db") {
-        std::cout << GREEN << arg1 << RESET << ": " << YELLOW << "[" << arg2 << "] " << RESET << message << std::endl;
+        std::cout << GREEN << "[" << arg1 << "] " << RESET << YELLOW << "[" << arg2 << "] " << RESET << message << std::endl;
     }
     if (arg2 == "error") {
-        std::cout << GREEN << arg1 << RESET << ": " << RED << "[" << arg2 << "] " << RESET << message << std::endl;
+        std::cout << GREEN << "[" << arg1 << "] " << RESET << RED << "[" << arg2 << "] " << RESET << message << std::endl;
     }
     if (arg2 == "info") {
-        std::cout << GREEN << arg1 << RESET << ": " << BLUE << "[" << arg2 << "] " << RESET << message << std::endl;
+        std::cout << GREEN << "[" << arg1 << "] " << RESET << BLUE << "[" << arg2 << "] " << RESET << message << std::endl;
     }
     /*if (arg2 == "server") {
         std::cout << BLUE << "[" << arg2 << "]: " << RESET << message << std::endl;
@@ -200,7 +199,7 @@ void Db::log(const std::string &arg1, const std::string &arg2,const std::string 
             log_file.close();
         }
         else{*/
-        log_file << arg1 << ": " << "[" << arg2 << "] " << message << "\n";
+        log_file << "[" << arg1 << "] " << "[" << arg2 << "] " << message << "\n";
         log_file.close();
     }
     else

@@ -15,3 +15,4 @@ server/redis/redis_data/
 server/redis/redis_data/*
 /server/redis/redis_data/*
 /server/redis/redis_data/appendonly.aof
+log.txt
