@@ -22,5 +22,4 @@ services:
       - "5555:5555"
     depends_on:
       - redis
-
-    command: bash -c -s "ls -r -l && ./src/server"
+    command: bash -c -s "./src/server"
