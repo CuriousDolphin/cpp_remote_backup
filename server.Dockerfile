@@ -10,6 +10,5 @@ RUN cmake . && make
 
 # copy bin to a new image
 FROM ubuntu:20.04
-WORKDIR /remote_backup_server
 EXPOSE 5555
 COPY --from=build /src/server ./src/server
