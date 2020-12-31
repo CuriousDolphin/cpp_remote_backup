@@ -14,11 +14,12 @@ services:
   server:
     image: isnob46/remote_backup_server:latest
     container_name: remote_backup_server
+    volumes:
+      - ./server/data:/data
     expose:
       - "5555"
     ports:
       - "5555:5555"
     depends_on:
       - redis
-
-    command: bash -c -s "ls -r -l && ./src/server"
+    command: bash -c -s "./src/server"
