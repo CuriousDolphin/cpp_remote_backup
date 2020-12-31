@@ -1,7 +1,7 @@
 //
 // Created by isnob on 24/09/2020.
 //
-
+#pragma once
 #ifndef SERVER_SESSION_H
 #define SERVER_SESSION_H
 
@@ -28,6 +28,7 @@
 #include "db.h"
 #include "../shared/const.h"
 #include "../shared/hasher.h"
+#include "../shared/color.h"
 #include <boost/algorithm/string_regex.hpp>
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
@@ -49,6 +50,9 @@ public:
     Session(tcp::socket socket, Db *db);
     void start();
     ~Session();
+
+    static void log(const std::string &arg1, const std::string &arg2,const std::string &message);
+
 
 private:
     void read_request(); //async
@@ -74,13 +78,15 @@ private:
     array<char,LEN_BUFF> _data;
     Db *_db;
     std::string _user;
+    std::ifstream _file;
     std::string _input_buffer;
 
 
     bool delete_file(const string &effectivePath, const string &relativePath);
 
-
     bool is_logged();
+
+
 
     vector<string> extract_params(string &&str);
 

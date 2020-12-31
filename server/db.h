@@ -6,6 +6,12 @@
 #define SERVER_DB_H
 
 #include <cpp_redis/cpp_redis>
+#include "../shared/hasher.h"
+#include "../shared/color.h"
+#include <fstream>
+#include <iostream>
+
+using namespace std;
 
 class Db {
 public:
@@ -31,6 +37,7 @@ private:
     void connect();
     int port;
     cpp_redis::client redis_client;
+    void log(const std::string &arg1, const std::string &arg2,const std::string &message);
 
 
 };

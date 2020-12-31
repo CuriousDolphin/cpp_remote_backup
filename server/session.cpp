@@ -6,7 +6,9 @@
 
 Session::Session(tcp::socket socket, Db *db)
         : _socket(std::move(socket)), _user(""), _db(db) {
-    cout << " new session " << this_thread::get_id() << endl;
+    std::stringstream ss;
+    ss << this_thread::get_id() <<" NEW SESSION";
+    Session::log("Server", "info", ss.str());
 }
 
 void Session::start() {
@@ -15,7 +17,9 @@ void Session::start() {
 
 Session::~Session() {
     _socket.cancel();
-    cout << "DELETED SESSION " << _user << endl;
+    std::stringstream ss;
+    ss << "DELETED SESSION " ;
+    Session::log(_user, "info", ss.str());
 }
 
 void Session::read_request() {
@@ -65,10 +69,12 @@ void Session::read_and_save_file(std::string const & effectivePath,std::string c
                                                   << " CODE " << ec.value() << std::endl;
                                 });
     }else{
-
+        std::stringstream ss;
         _outfile.close();
         if(_outfile.fail()){
-            cout<<"FAILED CREATING FILE"<<endl;
+            ss.clear();
+            ss << "FAILED CREATING FILE";
+            Session::log(_user, "error", ss.str());
             read_request();
             return;
         }
@@ -78,10 +84,12 @@ void Session::read_and_save_file(std::string const & effectivePath,std::string c
         if (reqHash != hash){
             delete_file(effectivePath, relativePath);
             error_response_sync(ERROR_COD.at(Server_error::FILE_HASH_MISMATCH));
-            std::cout << effectivePath + ": " + reqHash + " VS " + hash << std::endl;
+            //std::cout << effectivePath + ": " + reqHash + " VS " + hash << std::endl;
         }
         else {
-            std::cout << " [SAVED FILE] at ~" << effectivePath << std::endl;
+            ss.clear();
+            ss << " [SAVED FILE] at ~" << effectivePath;
+            Session::log(_user, "info", ss.str());
 
             _db->save_user_file_hash(_user, relativePath, hash);
             /*   snapshot:ivan={
@@ -146,6 +154,7 @@ vector<string> Session::extract_params(const string &str)
 void Session::handle_request(const std::string& request) {
     vector<string> params  = extract_params(request) ; // parsed values
     vector<string> tmp1; // support
+    std::stringstream ss;
     //boost::split_regex(tmp1, request, boost::regex(REQUEST_DELIMITER)); // take one line
 
     //boost::split_regex(params, tmp1[0], boost::regex(PARAM_DELIMITER)); // split by __
@@ -161,7 +170,9 @@ void Session::handle_request(const std::string& request) {
         action = commands.at(params[0]);
     }
     catch (const std::exception &) {
-        cout << "UNKNOWN COMMAND" << std::endl;
+        ss.clear();
+        ss <<  "UNKNOWN COMMAND" ;
+        Session::log(_user, "error", ss.str());
         error_response_sync(ERROR_COD.at(Server_error::UNKNOWN_COMMAND));
         return;
     }
@@ -196,6 +207,9 @@ void Session::handle_request(const std::string& request) {
 
 
             if (params.size() != 2) {
+                ss.clear();
+                ss <<  "WRONG N ARGS" ;
+                Session::log(_user, "error", ss.str());
                 error_response_sync(ERROR_COD.at(Server_error::WRONG_N_ARGS));
                 return;
             }
@@ -215,7 +229,9 @@ void Session::handle_request(const std::string& request) {
                     return;
                 }
                 else{
-                    cout << "FILE DOES NOT EXIST IN FILESYSTEM!" << endl;
+                    ss.clear();
+                    ss <<  "FILE NOT EXIST ON FILESYSTEM" ;
+                    Session::log(_user, "error", ss.str());
                     _db->delete_file_from_snapshot(_user,path);
                     error_response_sync(ERROR_COD.at(Server_error::FILE_NOT_FOUND));
                     read_request();
@@ -223,8 +239,9 @@ void Session::handle_request(const std::string& request) {
                 }
             }
             else{
-                std::cout << "FILE DOES NOT EXISTS IN DB!" << std::endl;
-
+                ss.clear();
+                ss <<  "FILE NOT EXIST IN DB" ;
+                Session::log(_user, "error", ss.str());
                 error_response_sync(ERROR_COD.at(Server_error::FILE_NOT_FOUND));
                 read_request();
             }
@@ -239,6 +256,9 @@ void Session::handle_request(const std::string& request) {
                 return;
             }
             if (params.size() < 4) {
+                ss.clear();
+                ss <<  "WRONG N ARGS" ;
+                Session::log(_user, "error", ss.str());
                 error_response_sync(ERROR_COD.at(Server_error::WRONG_N_ARGS));
                 return;
             }
@@ -265,12 +285,14 @@ void Session::handle_request(const std::string& request) {
             else{
 
                 if (hash == Hasher::getSHA(full_path)){ //TODO check on db's hash, don't calculate it!
-                    cout << "FILE ALREADY EXISTS" << endl;
+                    ss.clear();
+                    ss <<  "FILE ALREADY EXISTS" ;
+                    Session::log(_user, "error", ss.str());
                     error_response_sync(ERROR_COD.at(Server_error::FILE_ALREADY_EXISTS));
                 }
                 else{ //file already existent on server with different hash --> PATCH
                     bool check = delete_file(full_path, path);
-                    if (check) { // succesfull delete
+                    if (check) { // successful delete
                         create_dirs(full_path); // create dirs if not exists
                         _outfile.open(full_path);
                         if (_outfile.fail()) {
@@ -284,7 +306,9 @@ void Session::handle_request(const std::string& request) {
                         return;
                     }
                     else{ //delete error
-                        std::cout << "FILE DELETE ERROR!" << std::endl;
+                        ss.clear();
+                        ss <<  "FILE DELETE ERROR" ;
+                        Session::log(_user, "error", ss.str());
                         error_response_sync(ERROR_COD.at(Server_error::FILE_DELETE_ERROR));
                     }
                 }
@@ -309,7 +333,6 @@ void Session::handle_request(const std::string& request) {
             }
             try {
                 std::map<string, string> files = _db->get_user_snapshot(_user);
-
                 std::vector<std::string> lines_to_send;
                 auto it = files.begin();
                 int tot_len =0;
@@ -360,7 +383,9 @@ void Session::handle_request(const std::string& request) {
                 success_response_sync(std::to_string(check));
             }
             else{ //some kind of error during delete
-                std::cout << "FILE DELETE ERROR!" << std::endl;
+                ss.clear();
+                ss <<  "FILE DELETE ERROR" ;
+                Session::log(_user, "error", ss.str());
                 error_response_sync(ERROR_COD.at(Server_error::FILE_DELETE_ERROR));
             }
             read_request();
@@ -373,7 +398,9 @@ void Session::handle_request(const std::string& request) {
 
 bool Session::is_logged(){
     if(_user.empty() ||  _user.length()==0){
-        std::cout<<"{ USER NOT LOGGED }"<<std::endl;
+        std::stringstream ss;
+        ss <<  "{USER NOT LOGGED}" ;
+        Session::log(_user, "error", ss.str());
         return false;
     }else{
         return true;
@@ -476,6 +503,37 @@ void Session::send_file_chunked(std::string const & effectivePath,std::string co
             read_request();
         }
     }
+
+}
+
+void Session::log(const std::string &arg1, const std::string &arg2,const std::string &message){ //move(message)
+    std::ofstream log_file;
+    /*** console logging ***/
+    if (arg2 == "db") {
+        std::cout << GREEN << "[" << arg1 << "] " << RESET << YELLOW << "[" << arg2 << "] " << RESET << message << std::endl;
+    }
+    if (arg2 == "error") {
+        std::cout << GREEN << "[" << arg1 << "] " << RESET << RED << "[" << arg2 << "] " << RESET << message << std::endl;
+    }
+    if (arg2 == "info") {
+        std::cout << GREEN << "[" << arg1 << "] " << RESET << BLUE << "[" << arg2 << "] " << RESET << message << std::endl;
+    }
+    /*if (arg2 == "server") {
+        std::cout << BLUE << "[" << arg2 << "]: " << RESET << message << std::endl;
+    }*/
+    /*** file logging ***/
+    log_file.open("../../log.txt", ios::out | ios::app);
+    if (log_file.is_open()) {
+        /*if (arg2 == "server") {
+            log_file << "[" << arg2 << "]: " << message << "\n";
+            log_file.close();
+        }
+        else{*/
+            log_file << "[" << arg1 << "] " << "[" << arg2 << "] " << message << "\n";
+            log_file.close();
+    }
+    else
+        std::cout << RED << "Error during logging on file!"<< RESET << std::endl;
 
 }
 

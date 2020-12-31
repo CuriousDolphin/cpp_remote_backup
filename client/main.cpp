@@ -23,7 +23,7 @@ int main() {
     shared_map<bool> pending_operation;
     boost::asio::io_context io_context;
     boost::asio::ip::tcp::resolver resolver(io_context);
-    auto endpoints = resolver.resolve("host.docker.internal", "5555"); // host.docker.internal
+    auto endpoints = resolver.resolve("localhost", "5555"); // host.docker.internal
     Jobs<Request> jobs;
     client client(io_context, endpoints, "ivan", "mimmo", &remote_snapshot, &pending_operation);
 
@@ -88,11 +88,11 @@ int main() {
                     case FileStatus::created: {
                         string op_key = node.getPath();
                         if (!pending_operation.exist(op_key)) { //se non c'e' gia' una richiesta uguale in coda
-                            cout << "================= FW { CREATED }: \n" << node.toString() << endl;
+                            cout << BOLDYELLOW << "================= FW { CREATED }: \n" << RESET << node.toString() << endl;
                             pending_operation.set(op_key, true);
                             jobs.put(Request(Method::PUT, node));
                         } else {
-                            cout << "================= FW { THROTTLE CREATED }" << endl;
+                            cout << YELLOW << "================= FW { THROTTLE CREATED }" << RESET << endl;
                         }
 
                     }
@@ -100,11 +100,11 @@ int main() {
                     case FileStatus::modified: {
                         string op_key =  node.getPath();
                         if (!pending_operation.exist(op_key)) {
-                            std::cout << "================= FW { MODIFIED }: " << node.toString() << '\n';
+                            std::cout << BOLDYELLOW << "================= FW { MODIFIED }: " << RESET << node.toString() << '\n';
                             pending_operation.set(op_key, true);
                             jobs.put(Request(Method::PUT, node));
                         } else {
-                            cout << "================= FW { THROTTLE MODIFIED }" << endl;
+                            cout << YELLOW << "================= FW { THROTTLE MODIFIED }" << RESET << endl;
                         }
                     }
 
@@ -113,24 +113,22 @@ int main() {
 
                         string op_key = node.getPath();
                         if (!pending_operation.exist(op_key)) { //se non c'e' gia' una richiesta uguale in coda
-                            std::cout << "================= FW { ERASED }: " << node.toString() << '\n';
+                            std::cout << BOLDYELLOW << "================= FW { ERASED }: " << RESET << node.toString() << '\n';
                             pending_operation.set(op_key, true);
                             jobs.put(Request(Method::DELETE, node));
                         } else {
-                            cout << "================= FW { THROTTLE ERASED }" << endl;
+                            cout << YELLOW << "================= FW { THROTTLE ERASED }" << RESET << endl;
                         }
                     }
                         break;
-                        // TODO ADD GET HERE
                     case FileStatus::missing: {
-                        //string op_key = "DELETE_" + node.toString();
                         string op_key =  node.getPath();
                         if (!pending_operation.exist(op_key)) {
-                            std::cout << "================= FW { MISSING }: " << node.toString() << '\n';
+                            std::cout << BOLDYELLOW << "================= FW { MISSING }: " << RESET << node.toString() << '\n';
                             pending_operation.set(op_key, true);
                             jobs.put(Request(Method::GET, node));
                         } else {
-                            cout << "================= FW { THROTTLE MISSING}"<<endl;
+                            cout << YELLOW << "================= FW { THROTTLE MISSING}" << RESET << endl;
                         }
                         break;
                     }
@@ -138,16 +136,16 @@ int main() {
 
                         string op_key =  node.getPath();
                         if (!pending_operation.exist(op_key)) { //se non c'e' gia' una richiesta uguale in coda
-                            std::cout << "================= FW { UNTRACKED} : " << node.toString() << '\n';
+                            std::cout << BOLDYELLOW << "================= FW { UNTRACKED} : " << RESET <<node.toString() << '\n';
                             pending_operation.set(op_key, true);
                             jobs.put(Request(Method::PUT, node));
                         } else {
-                            cout << "================= FW { THROTTLE UNTRACKED }"<<endl;
+                            cout << YELLOW << "================= FW { THROTTLE UNTRACKED }" << RESET <<endl;
                         }
                     }
                         break;
                     default:
-                        std::cout << "Error! Unknown file status.\n";
+                        std::cout << RED << "Error! Unknown file status.\n" << RESET << std::endl;
                 }
         });
     });

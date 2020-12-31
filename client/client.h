@@ -8,6 +8,7 @@
 #include "../shared/job.h"
 #include "../shared/shared_map.h"
 #include "../shared/hasher.h"
+#include "../shared/color.h"
 #include "node.h"
 #include "request.h"
 #include <boost/algorithm/string_regex.hpp>
@@ -55,9 +56,8 @@ private:
     void handle_response(Request &&req);
     void read_chunked_snapshot_and_set(int len);
     bool read_and_save_file(Node n, int filesize);
-
+    void handle_errors(int error_code, Request req, Node node);
     void read_chunked_snapshot_and_set(int len, int n_lines);
-
     void create_dirs(string path);
 };
 
