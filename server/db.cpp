@@ -171,7 +171,7 @@ std::string Db::get_user_file_hash(const std::string &user, const std::string &p
     {
         std::stringstream ss ;
         ss << " get file hash :" << path << "@" << reply.as_string() ;
-        Db::log("Server", "db", ss.str());
+        Db::log(user, "db", ss.str());
         return reply.as_string();
     }
 }
