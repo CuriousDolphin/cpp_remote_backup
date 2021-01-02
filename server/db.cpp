@@ -15,7 +15,7 @@ void Db::set(const std::string &key, const std::string &value)
     redis_client.sync_commit();
     std::stringstream ss;
     ss << " stored key: " << key;
-    Db::log("Server", "db", ss.str());
+    Db::log("Server", "redis", ss.str());
 }
 
 void Db::save_user_file_hash(const std::string &user, const std::string &path, const std::string &sha)
@@ -26,7 +26,7 @@ void Db::save_user_file_hash(const std::string &user, const std::string &path, c
     std::stringstream ss;
     ss << " stored snapshot" << std::endl
        << path << ":" << sha;
-    Db::log(user, "db", ss.str());
+    Db::log(user, "redis", ss.str());
 }
 
 void Db::set_user_pwd(const std::string &user, const std::string &pwd)
@@ -36,7 +36,7 @@ void Db::set_user_pwd(const std::string &user, const std::string &pwd)
     redis_client.sync_commit();
     std::stringstream ss;
     ss << " set user  " << user << "@" << user_hash;
-    Db::log("Server", "db", ss.str());
+    Db::log("Server", "redis", ss.str());
 }
 
 std::string Db::get_user_pwd(const std::string &user)
@@ -55,7 +55,7 @@ std::string Db::get_user_pwd(const std::string &user)
     {
         std::stringstream ss;
         ss << " get user pwd ";
-        Db::log(user, "db", ss.str());
+        Db::log(user, "redis", ss.str());
         return reply.as_string();
     }
 }
@@ -75,7 +75,7 @@ std::string Db::get(const std::string &key)
     {
         std::stringstream ss;
         ss << " get key: " << key;
-        Db::log("Server", "db", ss.str());
+        Db::log("Server", "redis", ss.str());
         return reply.as_string();
     }
 }
@@ -86,7 +86,7 @@ std::map<std::string, std::string> Db::get_user_snapshot(const std::string &user
     std::string user_hash = Hasher::pswSHA(user);
     std::stringstream ss;
     ss << " GET snapshot ";
-    Db::log(user, "db", ss.str());
+    Db::log(user, "redis", ss.str());
     std::future<cpp_redis::reply> future = redis_client.hgetall("snapshot:" + user_hash);
     redis_client.sync_commit();
     future.wait();
@@ -133,7 +133,7 @@ bool Db::delete_file_from_snapshot(const std::string &user, const std::string &p
         return false;
     }
     ss << " DELETE FILE " << path << " RES:" << reply.as_integer();
-    Db::log(user, "db", ss.str());
+    Db::log(user, "redis", ss.str());
     if (reply.is_integer() && reply.as_integer() != 0)
         return true;
     return false;
@@ -146,12 +146,12 @@ void Db::connect()
                              if (status == cpp_redis::connect_state::dropped)
                              {
                                  ss << "  Redis_client disconnected from " << host << ":" << port;
-                                 Db::log("Server", "db", ss.str());
+                                 Db::log("Server", "redis", ss.str());
                              }
                              if (status == cpp_redis::connect_state::ok)
                              {
                                  ss << "Redis_client connected to " << host << ":" << port;
-                                 Db::log("Server", "db", ss.str());
+                                 Db::log("Server", "redis", ss.str());
                              }
                          });
 }
@@ -171,7 +171,7 @@ std::string Db::get_user_file_hash(const std::string &user, const std::string &p
     {
         std::stringstream ss;
         ss << " get file hash :" << path << "@" << reply.as_string();
-        Db::log(user, "db", ss.str());
+        Db::log(user, "redis", ss.str());
         return reply.as_string();
     }
 }
@@ -180,7 +180,7 @@ void Db::log(const std::string &arg1, const std::string &arg2, const std::string
 { //move(message)
     std::ofstream log_file;
     /*** console logging ***/
-    if (arg2 == "db")
+    if (arg2 == "redis")
     {
         std::cout << GREEN << "[" << arg1 << "] " << RESET << YELLOW << "[" << arg2 << "] " << RESET << message << std::endl;
     }

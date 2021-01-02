@@ -24,14 +24,18 @@ Session::~Session() {
 
 void Session::read_request() {
     auto self(shared_from_this());
-    cout<<"========================[WAITING REQ]"<<endl;
+    std::stringstream ss;
+    ss <<"WAITING NEW REQUEST..."<<endl;
+    Session::log("Server", "info", ss.str());
     //std::size_t read  = _socket.read_some(boost::asio::buffer(_data, LEN_BUFF));
     //cout<<"READ REQUEST:"<<read<<endl;
     _input_buffer.clear();
     boost::asio::async_read_until(_socket,boost::asio::dynamic_buffer(_input_buffer),REQUEST_DELIMITER, [this, self](std::error_code ec, std::size_t length) {
         if (!ec) {
             //  std::cout<<std::this_thread::get_id()<<" READ :"<<_data.data()<<"("<<length<<std::endl;
-            cout << "===================[START REQ "<< _user<<"]==================" << std::endl;
+            std::stringstream ss;
+            ss << "START REQUEST " ;
+            Session::log(_user, "info", ss.str());
             handle_request(move(_input_buffer.substr(0, length - REQUEST_DELIMITER.length())));
         } else
             std::cout << std::this_thread::get_id() << " ERROR :" << ec.message()
@@ -117,7 +121,9 @@ bool Session::login(const string &user, const string &pwd) {
 }
 void Session::success_response_sync(){
     write_str_sync("OK"+REQUEST_DELIMITER);
-    cout<<"WRITED: OK"<<endl;
+    std::stringstream ss;
+    ss<<"WRITED: OK, SEND ME THE FILE!";
+    Session::log(_user, "info", ss.str());
 }
 void Session::success_response_sync(std::string param){
     write_str_sync("OK"+PARAM_DELIMITER+param+REQUEST_DELIMITER);
@@ -125,7 +131,9 @@ void Session::success_response_sync(std::string param){
 
 void Session::success_response_sync(std::string param1,std::string param2){
     int n=write_str_sync("OK"+PARAM_DELIMITER+param1+PARAM_DELIMITER+param2+REQUEST_DELIMITER);
-    cout<<"[write header]: ("<<n<<") :"<<"OK "+param1+PARAM_DELIMITER+param2+REQUEST_DELIMITER<<endl;
+    std::stringstream ss;
+    ss<<" ("<<n<<") :"<<"OK "+param1+PARAM_DELIMITER+param2+REQUEST_DELIMITER;
+    Session::log(_user, "header", ss.str());
 }
 
 void Session::error_response_sync(int cod_error){
@@ -138,7 +146,9 @@ vector<string> Session::extract_params(const string &str)
     vector<string> params;
     boost::split_regex(tmp, str, boost::regex(PARAM_DELIMITER));
     ostringstream oss;
-    oss << "~ [params received]:" << endl;
+    oss << endl;
+    //Session::log(_user, "params", oss.str());
+    //oss.clear();
     for (int i = 0; i < tmp.size(); i++)
     {
         if (!tmp[i].empty())
@@ -147,7 +157,7 @@ vector<string> Session::extract_params(const string &str)
             params.push_back(tmp[i]);
         }
     }
-    cout << oss.str();
+    Session::log(_user, "params", oss.str());
     return params;
 }
 
@@ -164,7 +174,6 @@ void Session::handle_request(const std::string& request) {
     //for (int i = 0; i < params.size(); i++) {
       //  cout <<i<< "\t" << params[i] << std::endl;
     //}
-    cout << "======================================================" << std::endl;
     int action = -1;
     try {
         action = commands.at(params[0]);
@@ -185,15 +194,16 @@ void Session::handle_request(const std::string& request) {
             }
             string user = params.at(1);
             string pwd = params.at(2);
+            std::stringstream ss;
             bool res = login(user, pwd);
             if (res) {
-                cout << "RESPONSE: OK" << std::endl;
+                ss << "RESPONSE: OK";
+                Session::log(_user, "info", ss.str());
                 success_response_sync("");
-                cout << "-------------------------------------" << std::endl;
                 read_request();
             } else {
-                cout<<"RESPONSE: WRONG CREDENTIALS"<<endl;
-                cout << "-------------------------------------" << std::endl;
+                ss<<"RESPONSE: WRONG CREDENTIALS";
+                Session::log(_user, "error", ss.str());
                 error_response_sync(ERROR_COD.at(Server_error::WRONG_CREDENTIALS));
             }
         }
@@ -219,7 +229,9 @@ void Session::handle_request(const std::string& request) {
                 if (boost::filesystem::exists(full_path)) {
                     _infile.open(full_path);
                     if (_infile.fail()) {
-                        cout << "FILE OPEN ERROR!" << endl; //TODO manage error on client
+                        ss.clear();
+                        ss << "FILE OPEN ERROR!"; //TODO manage error on client
+                        Session::log(_user, "error", ss.str());
                         error_response_sync(ERROR_COD.at(Server_error::FILE_OPEN_ERROR));
                         return;
                     }
@@ -274,8 +286,9 @@ void Session::handle_request(const std::string& request) {
 
                 _outfile.open(full_path);
                 if (_outfile.fail()) {
-                    cout << "FILE OPEN ERROR" << endl;
-
+                    ss.clear();
+                    ss << "FILE OPEN ERROR";
+                    Session::log(_user, "error", ss.str());
                     error_response_sync(ERROR_COD.at(Server_error::FILE_CREATE_ERROR));
                     return;
                 }
@@ -296,7 +309,9 @@ void Session::handle_request(const std::string& request) {
                         create_dirs(full_path); // create dirs if not exists
                         _outfile.open(full_path);
                         if (_outfile.fail()) {
-                            cout << "FILE OPEN ERROR" << endl;
+                            ss.clear();
+                            ss << "FILE OPEN ERROR";
+                            Session::log(_user, "error", ss.str());
                             error_response_sync(ERROR_COD.at(Server_error::FILE_CREATE_ERROR));
                             read_request();
                             return;
@@ -349,11 +364,7 @@ void Session::handle_request(const std::string& request) {
                     lines_to_send.push_back(line);
                     it++;
                 }
-                success_response_sync(
-                        to_string(files.size()),
-                        to_string(tot_len)
-                                      ); // send HEADER: num_files dim_payload
-
+                success_response_sync(to_string(files.size()),to_string(tot_len)); // send HEADER: num_files dim_payload
                 std::ostringstream oss;
                 for(auto& line:lines_to_send){ // send payload list of pats and hash
                     if(line.length()>1){
@@ -362,7 +373,9 @@ void Session::handle_request(const std::string& request) {
                     }
                 }
                 int n = write_str_sync(oss.str()); // send body
-                cout<<"[SENT] ("<<n <<") "<<endl;
+                std::stringstream ss;
+                ss<<"[SENT] ("<<n <<") ";
+                Session::log(_user, "info", ss.str());
             }catch(exception e){
                 error_response_sync(ERROR_COD.at(Server_error::UNKNOWN_ERROR));
             }
@@ -468,7 +481,7 @@ int Session::write_str_sync(std::string&& str) {
 void Session::send_file_chunked(std::string const & effectivePath,std::string const & relativePath, int len) {
     auto self(shared_from_this());
     //std::cout <<" [WRITE] FILE LEN:" << len << std::endl;
-
+    std::stringstream ss;
     if(len > 0)
     {
         int length = 0;
@@ -493,13 +506,16 @@ void Session::send_file_chunked(std::string const & effectivePath,std::string co
 
         _infile.close();
         if(_infile.fail()){
-            cout<<"FAILED SENDING FILE"<<endl;
+            ss.clear();
+            ss<<"FAILED SENDING FILE";
+            Session::log(_user, "error", ss.str());
             read_request();
             return;
         }
         else {
-            std::cout << " [SENT FILE] ~" << effectivePath << std::endl;
-
+            ss.clear();
+            ss << " SENT FILE ~ " << effectivePath;
+            Session::log(_user, "info", ss.str());
             read_request();
         }
     }
@@ -509,7 +525,7 @@ void Session::send_file_chunked(std::string const & effectivePath,std::string co
 void Session::log(const std::string &arg1, const std::string &arg2,const std::string &message){ //move(message)
     std::ofstream log_file;
     /*** console logging ***/
-    if (arg2 == "db") {
+    if (arg2 == "redis") {
         std::cout << GREEN << "[" << arg1 << "] " << RESET << YELLOW << "[" << arg2 << "] " << RESET << message << std::endl;
     }
     if (arg2 == "error") {
@@ -518,11 +534,17 @@ void Session::log(const std::string &arg1, const std::string &arg2,const std::st
     if (arg2 == "info") {
         std::cout << GREEN << "[" << arg1 << "] " << RESET << BLUE << "[" << arg2 << "] " << RESET << message << std::endl;
     }
+    if (arg2 == "params") {
+        std::cout << GREEN << "[" << arg1 << "] " << RESET << MAGENTA << "[" << arg2 << "] " << RESET << message;
+    }
+    if (arg2 == "header") {
+        std::cout << GREEN << "[" << arg1 << "] " << RESET << CYAN << "[" << arg2 << "] " << RESET << message;
+    }
     /*if (arg2 == "server") {
         std::cout << BLUE << "[" << arg2 << "]: " << RESET << message << std::endl;
     }*/
     /*** file logging ***/
-    log_file.open("../../log.txt", ios::out | ios::app);
+    log_file.open("../data/log.txt", ios::out | ios::app);
     if (log_file.is_open()) {
         /*if (arg2 == "server") {
             log_file << "[" << arg2 << "]: " << message << "\n";
@@ -533,8 +555,8 @@ void Session::log(const std::string &arg1, const std::string &arg2,const std::st
             log_file.close();
     }
     else
-        std::cout << RED << "Error during logging on file!"<< RESET << std::endl;
-
+        std::cout << GREEN << "[" << arg1 << "] " << RESET
+        << RED << "[" << arg2 << "] " << RESET << "Error during logging on file!" << std::endl;
 }
 
 

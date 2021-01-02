@@ -25,7 +25,7 @@ int main()
     shared_map<bool> pending_operation;
     boost::asio::io_context io_context;
     boost::asio::ip::tcp::resolver resolver(io_context);
-    auto endpoints = resolver.resolve("host.docker.internal", "5555"); // host.docker.internal
+    auto endpoints = resolver.resolve("localhost", "5555"); // host.docker.internal
     Jobs<Request> jobs;
     client client(io_context, endpoints, "ivan", "mimmo", &remote_snapshot, &pending_operation);
 
