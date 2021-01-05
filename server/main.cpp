@@ -54,7 +54,16 @@ int main()
                 io_context.run();
             });
 
-
+        for(auto& thread : threads)
+        {
+            if(thread.joinable())
+            {
+                //std::stringstream ss ;
+                //ss << "JOINED THREAD " << std::this_thread::get_id();
+                //Session::log("Server", "info", ss.str());
+                thread.join();
+            }
+        }
     }
     catch (std::exception& e)
     {
@@ -63,16 +72,7 @@ int main()
         Session::log("Server", "error", ss.str());
     }
 
-    for(auto& thread : threads)
-    {
-        if(thread.joinable())
-        {
-            //std::stringstream ss ;
-            //ss << "JOINED THREAD " << std::this_thread::get_id();
-            //Session::log("Server", "info", ss.str());
-            thread.join();
-        }
-    }
+
 
     return 0;
 }
