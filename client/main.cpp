@@ -9,8 +9,8 @@
 #include <boost/filesystem.hpp>
 
 const std::string path_to_watch = "../my_sync_folder"; // c:/documenti/francesco/my_sync_folder
-const auto fw_delay = std::chrono::milliseconds(5000);
-const auto snapshot_delay = std::chrono::seconds(120);
+const auto fw_delay = std::chrono::milliseconds(7000);
+const auto snapshot_delay = std::chrono::seconds(40);
 mutex m; // for print
 
 void print(const ostringstream &oss)
@@ -82,10 +82,6 @@ int main()
         // run a user provided lambda function
         fw.start([&jobs, &remote_snapshot, &pending_operation](Node node, FileStatus status) -> void {
             ostringstream oss;
-            // Process only regular files, all other file types are ignored
-            //if(!std::filesystem::is_regular_file(std::filesystem::path(path_to_watch)) && status != FileStatus::erased) {
-            //   return;
-            //}
 
             if (!node.is_dir())
                 switch (status)

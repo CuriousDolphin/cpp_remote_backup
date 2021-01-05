@@ -1,6 +1,7 @@
 #pragma once
 #ifndef CLIENT_H
 #define CLIENT_H
+
 #include <boost/asio.hpp>
 #include <iostream>
 #include <fstream>
@@ -13,16 +14,16 @@
 #include "request.h"
 #include <boost/algorithm/string_regex.hpp>
 #include <boost/filesystem.hpp>
+
 using boost::asio::ip::tcp;
 using namespace std;
 const std::map<std::string, int> commands = {{"LOGIN", 1},
-                                             {"GET", 2},
-                                             {"PUT", 3},
+                                             {"GET",   2},
+                                             {"PUT",   3},
                                              {"PATCH", 4}};
 //const int LEN_BUFF = 1024;
 
-class client
-{
+class client {
 public:
     client(boost::asio::io_context &io_context,
            const tcp::resolver::results_type &endpoints,
@@ -30,13 +31,19 @@ public:
            const string pwd,
            shared_map<Node> *remote_snapshot,
            shared_map<bool> *pending_operations
-       );
+    );
+
     tcp::socket &socket();
 
 
     void handle_request(Request req);
 
 private:
+
+    tcp::resolver::results_type endpoints;
+    string name;
+    string pwd;
+    bool connected;
     array<char, LEN_BUFF> _data;
     shared_map<Node> *_remote_snapshot;
     shared_map<bool> *_pending_operations;
@@ -47,18 +54,31 @@ private:
     ofstream _ofile;
 
     size_t do_write_str_sync(string str);
+
     bool send_file_chunked(Node n);
+
     void login(string name, string pwd);
-    void connect(const tcp::resolver::results_type &endpoints, string name, string pwd); // called in costructor
+
+    void connect(); // called in costructor
     string read_sync_until_delimiter();
-     vector<string> extract_params(string &&str);
+
+    vector<string> extract_params(string &&str);
+
     vector<string> read_header();
+
     void handle_response(Request &&req);
+
     void read_chunked_snapshot_and_set(int len);
+
     bool read_and_save_file(Node n, int filesize);
+
     void handle_errors(int error_code, Request req, Node node);
+
     void read_chunked_snapshot_and_set(int len, int n_lines);
+
     void create_dirs(string path);
+
+    void disconnect();
 };
 
 #endif
