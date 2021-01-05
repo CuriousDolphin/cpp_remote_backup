@@ -15,7 +15,7 @@ using namespace std;
 
 class Db {
 public:
-    Db(int port);
+    Db(int port,const std::string &host);
     void set(const std::string &key, const std::string &value);
 
 
@@ -36,6 +36,7 @@ public:
 private:
     void connect();
     int port;
+    std::string host;
     cpp_redis::client redis_client;
     void log(const std::string &arg1, const std::string &arg2,const std::string &message);
 

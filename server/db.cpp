@@ -4,7 +4,7 @@
 
 #include "db.h"
 
-Db::Db(int port) : port(port)
+Db::Db(int port,const std::string &host) : port(port), host(host)
 {
     connect();
 }
@@ -140,9 +140,15 @@ bool Db::delete_file_from_snapshot(const std::string &user, const std::string &p
 }
 void Db::connect()
 {
-    redis_client.connect("host.docker.internal", port,
+
+    redis_client.connect(host, port,
                          [this](const std::string &host, std::size_t port, cpp_redis::connect_state status) {
                              std::stringstream ss;
+                             if (status == cpp_redis::connect_state::failed)
+                             {
+                                 ss << "  Redis_client failed connection to " << host << ":" << port;
+                                 Db::log("Server", "db", ss.str());
+                             }
                              if (status == cpp_redis::connect_state::dropped)
                              {
                                  ss << "  Redis_client disconnected from " << host << ":" << port;
