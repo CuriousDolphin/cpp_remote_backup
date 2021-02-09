@@ -9,9 +9,10 @@
 #include <boost/filesystem.hpp>
 
 const std::string path_to_watch = "../my_sync_folder"; // c:/documenti/francesco/my_sync_folder
-const auto fw_delay = std::chrono::milliseconds(7000);
-const auto snapshot_delay = std::chrono::seconds(40);
+//const auto fw_delay = std::chrono::milliseconds(7000);
+//const auto snapshot_delay = std::chrono::seconds(40);
 mutex m; // for print
+auto fw_delay = std::chrono::milliseconds(0), snapshot_delay = std::chrono::milliseconds(0);
 
 void print(const ostringstream &oss)
 {
@@ -19,15 +20,52 @@ void print(const ostringstream &oss)
     cout << oss.str() << endl;
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+    /*
+     * parameters:
+     *
+     * [0] -> username (ivan)
+     * [1] -> password (mimmo)
+     * [2] -> host (localhost)
+     * [3] -> port (5555)
+     * [4] -> fw_delay
+     * [5] -> snapshot_delay
+     *
+     */
+
+
     shared_map<Node> remote_snapshot;
     shared_map<bool> pending_operation;
     boost::asio::io_context io_context;
     boost::asio::ip::tcp::resolver resolver(io_context);
-    auto endpoints = resolver.resolve("localhost", "5555"); // host.docker.internal
+
+    std::string username,password,host,port;
+
+
+
+    if(argc == 7){
+        username = argv[1];
+        password = argv[2];
+        host = argv[3];
+        port = argv[4];
+        fw_delay = std::chrono::milliseconds(std::atoi(argv[5]));
+        std::cout<<argv[5]<<" "<<argv[6]<<std::endl;
+        snapshot_delay = std::chrono::seconds(std::atoi(argv[6]));
+    }else{
+        username = "ivan";
+        password = "mimmo";
+        host = "localhost";
+        port = "5555";
+        fw_delay = std::chrono::milliseconds(7000);
+        snapshot_delay = std::chrono::seconds(40);
+    }
+
+    //auto endpoints = resolver.resolve("localhost", "5555"); // host.docker.internal
+    auto endpoints = resolver.resolve(host, port); // host.docker.internal
     Jobs<Request> jobs;
-    client client(io_context, endpoints, "ivan", "mimmo", &remote_snapshot, &pending_operation);
+    //client client(io_context, endpoints, "ivan", "mimmo", &remote_snapshot, &pending_operation);
+    client client(io_context, endpoints, username, password, &remote_snapshot, &pending_operation);
 
     std::thread io_thread([&io_context, &jobs, &client]() {
         ostringstream oss;
