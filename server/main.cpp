@@ -28,14 +28,32 @@ int NUM_THREADS=8;
 
 
 
-int main()
+int main(int argc, char *argv[])
 {
+    /*
+     * parameters:
+     *
+     * [0] -> db_host (localhost)
+     * [1] -> db_port (6379)
+     *
+     */
 
+    std::string db_host;
+    int db_port;
     std::vector<std::thread> threads;
+    if(argc == 3){
+        db_host = argv[1];
+        db_port = std::atoi(argv[2]);
+        std::cout<<"parametri linea di comando"<<std::endl;
+    }else{
+        db_host = "localhost";
+        db_port = 6379;
+    }
+
     try
     {
 
-        Db db(6379,"localhost");
+        Db db(db_port,db_host);
 
 
 
