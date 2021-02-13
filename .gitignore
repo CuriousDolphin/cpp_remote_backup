@@ -1,5 +1,8 @@
 client/.idea
 client/cmake-build-debug
+client/cmake-build-debug-wsl/*
+client/cmake-build-debug-wsl
+.vscode
 server/.idea
 server/cmake-build-debug/*
 client/.idea/*
