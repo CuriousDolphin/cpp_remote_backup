@@ -1,2 +1,0 @@
-Cannot generate 'Debug-Remote Host' into C:\Users\isnob\CLionProjects\cpp_remote_backup\remote_backup_client\src\cmake-build-debug-remote-host
-CMakeCache.txt is found in the project dir, only in-source generation will be performed.

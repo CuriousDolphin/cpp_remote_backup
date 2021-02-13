@@ -11,7 +11,10 @@ services:
       - ./server/redis/redis.conf:/usr/local/etc/redis/redis.conf
     restart: always
   server:
-    image: isnob46/remote_backup_server:latest
+    build:
+      context: .
+      dockerfile: server.dockerfile
+    #image: isnob46/remote_backup_server:latest
     container_name: remote_backup_server
     volumes:
       - ./server/data:/data
