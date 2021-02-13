@@ -241,7 +241,7 @@ vector<string> client::extract_params(string &&str) {
     vector<string> params;
     boost::split_regex(tmp, str, boost::regex(PARAM_DELIMITER));
     ostringstream oss;
-    oss << " ~ [params received]:" << endl;
+    oss << MAGENTA << "[params]:" << RESET << endl;
     for (int i = 0; i < tmp.size(); i++) {
         if (!tmp[i].empty()) {
             oss << "\t" << i << "\t" << tmp[i] << std::endl;
@@ -258,7 +258,7 @@ vector<string> client::read_header() {
 }
 
 bool client::send_file_chunked(Node n) {
-    cout << GREEN << "~ [SENDING FILE]" << RESET << endl;
+    cout << BLUE << "[SENDING FILE]" << RESET << endl;
     _file.open(n.getPath(), ios::out | ios::app | ios::binary);
     if (_file.fail()) {
         cout << RED << "failed to open file: " << RESET << n.getPath() << endl;
@@ -283,7 +283,7 @@ bool client::send_file_chunked(Node n) {
 
 void client::read_chunked_snapshot_and_set(int len, int n_lines) {
     try {
-        cout << " ~ [START READ SNAPSHOT CHUNKED]" << endl;
+        cout << BLUE << "[START READ SNAPSHOT CHUNKED]" << RESET << endl;
         int n_to_read;
         int size = len;
 
@@ -322,7 +322,7 @@ void client::read_chunked_snapshot_and_set(int len, int n_lines) {
         vector<string> lines; // support
         vector<string> arguments(3);
         boost::split_regex(lines, tmp, boost::regex(REQUEST_DELIMITER)); // split lines
-        cout << "~ [NUMBER LINES] " << lines.size() << endl;
+        cout << CYAN << "[NUMBER LINES] " << RESET << lines.size() << endl;
         int i = 0;
         for (auto &line : lines) { // for each line split filepath and hash
             i++;
@@ -339,7 +339,7 @@ void client::read_chunked_snapshot_and_set(int len, int n_lines) {
 
             }
         }
-        cout << "[END]" << endl;
+        cout << BLUE << "[END READ SNAPSHOT]" << RESET << endl;
     } catch (...) {
         cout << RED << "[errore snapshot read chunked]" << RESET << endl;
     }

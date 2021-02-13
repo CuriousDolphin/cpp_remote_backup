@@ -12,6 +12,7 @@
 #include "../shared/to_time_t.h"
 #include "../shared/shared_map.h"
 #include "../shared/const.h"
+#include "../shared/color.h"
 #include <boost/filesystem/fstream.hpp>
 
 

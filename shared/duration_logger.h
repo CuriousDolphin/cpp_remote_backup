@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <chrono>
+#include "color.h"
 
 class DurationLogger
 {
@@ -15,7 +16,7 @@ public:
     {
 
         start = std::chrono::high_resolution_clock::now();
-        std::cout << " >>>>>>>>>>>>>> start [" << name << "]" << std::endl;
+        std::cout << YELLOW << "[START " << name << "]" << RESET << std::endl;
     }
 
     ~DurationLogger()
@@ -23,6 +24,6 @@ public:
         end = std::chrono::high_resolution_clock::now();
 
         std::chrono::duration time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-        std::cout << "<<<<<<<<<<<<<<< end [" << name << " : duration " << time.count() << " ms] " << std::endl;
+        std::cout << YELLOW << "[END " << name << " : duration " << time.count() << " ms]" << RESET << std::endl;
     }
 };
