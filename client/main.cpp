@@ -12,7 +12,8 @@ const std::string path_to_watch = "../my_sync_folder"; // c:/documenti/francesco
 //const auto fw_delay = std::chrono::milliseconds(7000);
 //const auto snapshot_delay = std::chrono::seconds(40);
 mutex m; // for print
-auto fw_delay = std::chrono::milliseconds(0), snapshot_delay = std::chrono::milliseconds(0);
+auto fw_delay = std::chrono::milliseconds(0);
+auto snapshot_delay = std::chrono::seconds(0);
 
 void print(const ostringstream &oss)
 {
@@ -215,9 +216,10 @@ int main(int argc, char *argv[])
     {
         if (!pending_operation.exist("SNAPSHOT"))
         {
-            Node n;
+            Node n{"SNAPSHOT", false, "SNAAAAAAAAPSHOT"};
+
             jobs.put(Request(Method::SNAPSHOT, n));
-            pending_operation.set("SNAPSHOT", true);
+            pending_operation.set(n.getPath(), true);
             this_thread::sleep_for(snapshot_delay);
         }
     }
