@@ -21,12 +21,8 @@
 #include "server.h"
 #include "db.h"
 
-
 using namespace std;
-int NUM_THREADS=8;
-
-
-
+int NUM_THREADS = 8;
 
 int main(int argc, char *argv[])
 {
@@ -41,40 +37,41 @@ int main(int argc, char *argv[])
     std::string db_host;
     int db_port;
     std::vector<std::thread> threads;
-    if(argc == 3){
+    if (argc == 3)
+    {
         db_host = argv[1];
         db_port = std::atoi(argv[2]);
-        std::cout<<"parametri linea di comando"<<std::endl;
-    }else{
+    }
+    else
+    {
         db_host = "localhost";
         db_port = 6379;
     }
+    Session::log("Server", "info", "db_host: " + db_host + " port: " + std::to_string(db_port));
 
     try
     {
 
-        Db db(db_port,db_host);
-
-
+        Db db(db_port, db_host);
 
         //db.set_user_pwd("ivan","mimmo");
-        db.set_user_pwd("ivan","82d13e09a23511bf7906910e238ad09c339be756ebb083c6d1d03434418e089f");
-        db.set_user_pwd("francesco","82d13e09a23511bf7906910e238ad09c339be756ebb083c6d1d03434418e089f");
-        db.set_user_pwd("alberto","82d13e09a23511bf7906910e238ad09c339be756ebb083c6d1d03434418e089f");
+        db.set_user_pwd("ivan", "82d13e09a23511bf7906910e238ad09c339be756ebb083c6d1d03434418e089f");
+        db.set_user_pwd("francesco", "82d13e09a23511bf7906910e238ad09c339be756ebb083c6d1d03434418e089f");
+        db.set_user_pwd("alberto", "82d13e09a23511bf7906910e238ad09c339be756ebb083c6d1d03434418e089f");
         boost::asio::io_context io_context;
-        server s(io_context, 5555,&db);
+        server s(io_context, 5555, &db);
 
-        for(int n = 0; n < NUM_THREADS; n++)
-            threads.emplace_back([&io_context](){
-                std::stringstream ss ;
+        for (int n = 0; n < NUM_THREADS; n++)
+            threads.emplace_back([&io_context]() {
+                std::stringstream ss;
                 ss << "START IO THREAD " << std::this_thread::get_id();
                 Session::log("Server", "info", ss.str());
                 io_context.run();
             });
 
-        for(auto& thread : threads)
+        for (auto &thread : threads)
         {
-            if(thread.joinable())
+            if (thread.joinable())
             {
                 //std::stringstream ss ;
                 //ss << "JOINED THREAD " << std::this_thread::get_id();
@@ -83,14 +80,12 @@ int main(int argc, char *argv[])
             }
         }
     }
-    catch (std::exception& e)
+    catch (std::exception &e)
     {
-        std::stringstream ss ;
+        std::stringstream ss;
         ss << "Exception: " << e.what();
         Session::log("Server", "error", ss.str());
     }
-
-
 
     return 0;
 }

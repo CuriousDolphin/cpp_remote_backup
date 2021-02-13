@@ -11,10 +11,12 @@ services:
       - ./server/redis/redis.conf:/usr/local/etc/redis/redis.conf
     restart: always
   server:
-    build:
-      context: .
-      dockerfile: server.dockerfile
-    #image: isnob46/remote_backup_server:latest
+    # un-comment this line  if you want to build manually dockerfile
+    #build:
+    #  context: .
+    #  dockerfile: server.Dockerfile
+
+    image: isnob46/remote_backup_server:latest
     container_name: remote_backup_server
     volumes:
       - ./server/data:/data
@@ -24,4 +26,4 @@ services:
       - "5555:5555"
     depends_on:
       - redis
-    command: bash -c -s "./src/server"
+    command: bash -c -s "./src/server redis 6379" # db host and port

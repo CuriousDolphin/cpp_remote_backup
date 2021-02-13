@@ -4,4 +4,5 @@ services:
     image: isnob46/remote_backup_client:latest
     volumes:
       - ./:/my_sync_folder
-    command: bash -c -s "./src/client"
+    command: bash -c -s "ls -r -l && ./src/client ivan mimmo host.docker.internal 5555 7000 40" # username password serverhost server port  fw_delay  (ms)  get_snapshot_delay (s)
+

@@ -34,25 +34,25 @@ int main(int argc, char *argv[])
      *
      */
 
-
     shared_map<Node> remote_snapshot;
     shared_map<bool> pending_operation;
     boost::asio::io_context io_context;
     boost::asio::ip::tcp::resolver resolver(io_context);
 
-    std::string username,password,host,port;
+    std::string username, password, host, port;
 
-
-
-    if(argc == 7){
+    if (argc == 7)
+    {
         username = argv[1];
         password = argv[2];
         host = argv[3];
         port = argv[4];
         fw_delay = std::chrono::milliseconds(std::atoi(argv[5]));
-        std::cout<<argv[5]<<" "<<argv[6]<<std::endl;
+        std::cout << argv[5] << " " << argv[6] << std::endl;
         snapshot_delay = std::chrono::seconds(std::atoi(argv[6]));
-    }else{
+    }
+    else
+    {
         username = "ivan";
         password = "mimmo";
         host = "localhost";
@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
         fw.start([&jobs, &remote_snapshot, &pending_operation](Node node, FileStatus status) -> void {
             ostringstream oss;
 
-            if (!node.is_dir())
+            if (!node.is_dir() && node.getName() != "docker-compose.yml")
                 switch (status)
                 {
                 case FileStatus::created:
