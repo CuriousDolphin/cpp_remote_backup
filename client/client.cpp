@@ -25,7 +25,7 @@ std::string client::read_sync_until_delimiter() {
     std::string res = _input_buffer.substr(0, n - REQUEST_DELIMITER.length());
     _input_buffer = _input_buffer.substr(n, _input_buffer.length() - REQUEST_DELIMITER.length());
 
-    cout << " ~ [HEADER B]: " << n << "[DATA]" << res << " [EC]: " << ec.message() << endl;
+    cout << CYAN << "\t[HEADER B] --> " << RESET << n << CYAN << "\n\t[DATA] --> " << RESET << res << CYAN << "\n\t[EC] --> " << RESET << ec.message() << endl;
     if (ec.value() != 0) {
         throw std::runtime_error(ec.message());
     }
@@ -56,9 +56,9 @@ void client::connect() {
 
     if (ec.value() == 0) {
         connected = true;
-        cout << BLUE << "[CONNECTED TO SERVER]: " << RESET << endl;
+        cout << BLUE << "[CONNECTED TO SERVER]" << RESET << endl;
     }else{
-        cout << RED << "[FAILED CONNECT TO SERVER]:  " << RESET << ec.value() << endl;
+        cout << RED << "[FAILED CONNECT TO SERVER]: " << RESET << ec.value() << endl;
     }
     if (connected) {
         login(name, pwd);
@@ -200,7 +200,7 @@ void client::handle_response(Request &&req) {
                         if (ris) {
                             std::string hash = Hasher::getSHA("../" + node.getPath());
                             node.setLastHash(hash);
-                            std::cout << GREEN << "~ [FILE SAVED]: " << RESET << node.toString() << std::endl;
+                            std::cout << BLUE << "[FILE SAVED] --> " << RESET << node.toString() << std::endl;
                             _remote_snapshot->set(node.getAbsolutePath(), move(node));
                         } else {
                             std::cout << RED << "ERROR ON FILE SAVING" << RESET << std::endl;
@@ -309,7 +309,7 @@ void client::read_chunked_snapshot_and_set(int len, int n_lines) {
             //cout<<" ~ n to r:"<<n_to_read<<endl;
 
             ssize_t r = _socket.read_some(boost::asio::buffer(_data.data(), n_to_read));
-            cout << " ~ [" << r << "]/" << n_to_read << " [EC]: " << ec.value() << endl;
+            cout << "[" << r << "]/" << n_to_read << " read" << CYAN << "\n[EC]: " << RESET << ec.value() << endl;
             if (r > 0)
                 tmp += _data.data();// _data.data();
             else
@@ -322,7 +322,7 @@ void client::read_chunked_snapshot_and_set(int len, int n_lines) {
         vector<string> lines; // support
         vector<string> arguments(3);
         boost::split_regex(lines, tmp, boost::regex(REQUEST_DELIMITER)); // split lines
-        cout << CYAN << "[NUMBER LINES] " << RESET << lines.size() << endl;
+        cout << "Number lines: " << lines.size() << endl;
         int i = 0;
         for (auto &line : lines) { // for each line split filepath and hash
             i++;
@@ -346,7 +346,7 @@ void client::read_chunked_snapshot_and_set(int len, int n_lines) {
 }
 
 bool client::read_and_save_file(Node n, int filesize) {
-    cout << GREEN << "~ [RECEIVING FILE]" << RESET << endl;
+    cout << BLUE << "[RECEIVING FILE]" << RESET << endl;
     // TO DO HANDLE ../
     create_dirs("../" + n.getPath());
     _ofile.open("../" + n.getPath());
@@ -416,7 +416,7 @@ void client::handle_errors(int error_code, Request req, Node node) {
         }
         case Server_error::FILE_ALREADY_EXISTS : {
             _remote_snapshot->set(req.node.getAbsolutePath(), move(node));
-            std::cout << RED << "FILE ALREADY EXISTS" << RESET << std::endl;
+            std::cout << RED << "[FILE ALREADY EXISTS]" << RESET << std::endl;
             break;
         }
         case Server_error::FILE_DELETE_ERROR : {

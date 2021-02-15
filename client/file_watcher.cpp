@@ -6,11 +6,11 @@
 FileWatcher::FileWatcher(shared_map<Node> *remote_snapshot,shared_map<bool> * pending_operation, const std::string& path_to_watch, std::chrono::duration<int, std::milli> delay) : path_to_watch{path_to_watch},
                                                                                                                                        delay{delay}, remote_snapshot{remote_snapshot} ,pending_operation{pending_operation}
 {
-    std::cout << BLUE << "[FW CREATING INDEXES] " << RESET << std::endl;
+    std::cout << GREEN << "[FW]" << YELLOW << " {CREATING INDEXES} " << RESET << std::endl;
     for (auto &file : std::filesystem::recursive_directory_iterator(path_to_watch))
     {
         Node tmp = createNode(file);
-        std::cout << BLUE << "[HASHING] "<< RESET << file.path().relative_path().string() << std::endl;
+        std::cout << BLUE << "[HASHING] --> "<< RESET << file.path().relative_path().string() << std::endl;
         paths_.insert({file.path().relative_path().string(), tmp});
     }
     std::cout << "----------------------------" << std::endl;
@@ -106,7 +106,7 @@ void FileWatcher::start(const std::function<void(Node, FileStatus)> &action)
 
                         std::string new_hash = Hasher::getSHA(file.path().string());
                         //cout<<"---"<<endl<<old_hash<<endl<<new_hash<<endl;
-                        cout<<"--maybe modified check hash-"<<file.path().string()<<":"<<old_hash<<"@"<<new_hash<<endl;
+                        cout<<"(maybe modified check hash) --> "<<file.path().string()<<":"<<old_hash<<"@"<<new_hash<<endl;
                         if (old_hash != new_hash)
                         {   // se cambia l'hash la modifica e' veritiera
                             uintmax_t size = std::filesystem::file_size(file);
